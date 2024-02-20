@@ -42,7 +42,8 @@ func createPodObject(funcInfo FuncInfo) *core.Pod {
 			},
 		},
 		Spec: core.PodSpec{
-			HostIPC: true,
+			HostIPC:       true,
+			RestartPolicy: "OnFailure",
 			SecurityContext: &core.PodSecurityContext{
 				RunAsUser: &user,
 			},
@@ -76,7 +77,7 @@ func createPodObject(funcInfo FuncInfo) *core.Pod {
 func deployFunc(funcInfo FuncInfo, clientset *kubernetes.Clientset) string {
 	pod := createPodObject(funcInfo)
 	podName := pod.Name
-	pod, err := clientset.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+	_, err := clientset.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		fmt.Println(err)
 	}
