@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -24,12 +25,12 @@ type FuncInfo struct {
 	batch_size      int     `json:"batch_size"`
 }
 
-type Queue struct {
-	items []FuncInfo
-}
-
-type k8sClient struct {
-	clientset *kubernetes.Clientset
+type FuncReq struct {
+	uid             string
+	task_identifier string
+	deadline        float32
+	accuracy        float32
+	timestamp       time.Time
 }
 
 func InitQueue() *Queue {
@@ -52,31 +53,42 @@ func initKubernetes() *kubernetes.Clientset {
 func initRouter(queue *Queue) *gin.Engine {
 	r := gin.Default()
 	r.GET("/run", func(c *gin.Context) {
-		fid := c.Query("id")
-		fidInt, _ := strconv.Atoi(fid)
-		funcInfo, err := getVariantByID(fidInt)
+		var funcReq FuncReq
+
+		// Unique id for the new task
+		funcReq.uid = uuid.New().String()
+
+		// Task identifer
+		funcReq.task_identifier = c.Query("task_id")
+
+		// Deadline constraint for the task
+		deadline64, err := strconv.ParseFloat(c.Query("deadline"), 32)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "impossible to retrieve"})
-			return
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid deadline value"})
 		}
-		queue.addToQueue(funcInfo)
+		funcReq.deadline = float32(deadline64)
+
+		// Accuracy constraint for the task
+		accuracy64, err := strconv.ParseFloat(c.Query("accuracy"), 32)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid accuracy value"})
+		}
+		funcReq.accuracy = float32(accuracy64)
+
+		// Adding current timestamp to measure the deadline
+		funcReq.timestamp = time.Now()
+
+		// Add the task to pending queue
+		queue.addToQueue(funcReq)
 	},
 	)
 	return r
-}
-
-func systemTimer() int {
-	time.Sleep(1 * time.Second)
-	i := 0
-	i += 1
-	return i
 }
 
 func main() {
 	queue := InitQueue()
 	k8s := initKubernetes()
 
-	go systemTimer()
 	go queue.schedulingPolicy(k8s)
 
 	router := initRouter(queue)

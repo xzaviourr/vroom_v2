@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -52,25 +53,30 @@ func setup_db() {
 	_, _ = stmt.Exec("image-rec", 4, 50, "synergcseiitb/image-rec-resnet:1.6", 3.0, 80.0, 200)
 }
 
-func getVariantByID(variant_id int) (FuncInfo, error) {
+func getVariantsForReq(funcReq FuncReq) ([]FuncInfo, error) {
 	db, _ := sql.Open("mysql", "vroom:vroom@tcp(localhost:3306)/")
 	_, _ = db.Exec("USE vroom")
 
-	var variant FuncInfo
+	current_ts := time.Now()
 
-	// Prepare query
-	query := "SELECT * FROM variants WHERE variant_id = ?"
+	// Time remaining before SLO miss
+	remaining_time := funcReq.deadline - float32(current_ts.Sub(funcReq.timestamp)/time.Millisecond)
 
-	// Execute query
-	rows, err := db.Query(query, variant_id)
+	// Query to fetch all relevant resource variants for the given task
+	query := "SELECT * FROM variants WHERE task_identifier = '?' AND accuracy >= ? AND latency <= ?;"
+
+	// Execute query on the sql db
+	rows, err := db.Query(query, funcReq.task_identifier, funcReq.accuracy, remaining_time)
 	if err != nil {
 		fmt.Println("Error executing query:", err)
 	}
 	defer rows.Close()
 
+	var variants []FuncInfo
+
 	for rows.Next() {
 		var variant FuncInfo
-		_ = rows.Scan(
+		if err := rows.Scan(
 			&variant.variant_id,
 			&variant.task_identifier,
 			&variant.gpu_memory,
@@ -79,21 +85,10 @@ func getVariantByID(variant_id int) (FuncInfo, error) {
 			&variant.latency,
 			&variant.accuracy,
 			&variant.batch_size,
-		)
-		fmt.Printf("%+v\n", variant)
+		); err == nil {
+			variants = append(variants, variant)
+		}
 	}
 
-	_ = db.QueryRow(query, variant_id).Scan(
-		&variant.variant_id,
-		&variant.task_identifier,
-		&variant.gpu_memory,
-		&variant.gpu_cores,
-		&variant.image,
-		&variant.latency,
-		&variant.accuracy,
-		&variant.batch_size,
-	)
-	fmt.Println(variant)
-
-	return variant, nil
+	return variants, nil
 }
