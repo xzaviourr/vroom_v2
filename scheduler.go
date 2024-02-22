@@ -31,7 +31,7 @@ func (q *Queue) schedulingPolicy(k8s *kubernetes.Clientset) {
 		if len(q.items) > 0 {
 			funcReq, _ := q.deque()
 			variants, _ := getVariantsForReq(funcReq)
-			deployFunc(variants[0], k8s)
+			deployFunc(variants[0], k8s, funcReq.uid)
 		}
 	}
 }

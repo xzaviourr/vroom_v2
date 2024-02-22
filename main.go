@@ -39,8 +39,7 @@ func InitQueue() *Queue {
 }
 
 func initKubernetes() *kubernetes.Clientset {
-	var kubeconfig *string
-	kubeconfig = flag.String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	kubeconfig := flag.String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	flag.Parse()
 
 	// build configuration from the config file.
@@ -86,6 +85,7 @@ func initRouter(queue *Queue) *gin.Engine {
 }
 
 func main() {
+	// setup_db()
 	queue := InitQueue()
 	k8s := initKubernetes()
 

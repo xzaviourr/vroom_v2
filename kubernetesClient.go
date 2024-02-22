@@ -12,19 +12,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func waitForPodCreation(clientset *kubernetes.Clientset, name string) {
-	podName, _ := clientset.CoreV1().Pods("default").Get(context.TODO(), name, metav1.GetOptions{})
-	for {
-		if podName.Status.Phase == "Running" {
-			break
-		}
-	}
-	fmt.Printf("Pod Created : %s", name)
-}
-
-func createPodObject(funcInfo FuncInfo) *core.Pod {
+func createPodObject(funcInfo FuncInfo, task_id string) *core.Pod {
 	fmt.Printf("Creating a new pod")
-	podName := funcInfo.task_identifier + funcInfo.variant_id
+	podName := funcInfo.task_identifier + "-" + funcInfo.variant_id + "-" + task_id
 	namespace := "default"
 	imageName := funcInfo.image
 	gpuMemory := resource.NewQuantity(int64(funcInfo.gpu_memory), resource.DecimalSI).DeepCopy()
@@ -74,13 +64,12 @@ func createPodObject(funcInfo FuncInfo) *core.Pod {
 	}
 }
 
-func deployFunc(funcInfo FuncInfo, clientset *kubernetes.Clientset) string {
-	pod := createPodObject(funcInfo)
+func deployFunc(funcInfo FuncInfo, clientset *kubernetes.Clientset, task_id string) string {
+	pod := createPodObject(funcInfo, task_id)
 	podName := pod.Name
 	_, err := clientset.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		fmt.Println(err)
 	}
-	waitForPodCreation(clientset, podName)
 	return podName
 }
