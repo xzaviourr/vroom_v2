@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,15 +15,23 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+type GpuResource struct {
+	node_id           string
+	vcore_capacity    int
+	vmem_capacity     int
+	vcore_allocatable int
+	vmem_allocatable  int
+}
+
 type FuncInfo struct {
-	variant_id      string  `json:"variant_id"`
-	task_identifier string  `json:"task_identifier"`
-	gpu_memory      int     `json:"gpu_memory"`
-	gpu_cores       int     `json:"gpu_cores"`
-	image           string  `json:"image"`
-	latency         float32 `json:"latency"`
-	accuracy        float32 `json:"accuracy"`
-	batch_size      int     `json:"batch_size"`
+	variant_id      string
+	task_identifier string
+	gpu_memory      int
+	gpu_cores       int
+	image           string
+	latency         float32
+	accuracy        float32
+	batch_size      int
 }
 
 type FuncReq struct {
@@ -36,6 +45,15 @@ type FuncReq struct {
 func InitQueue() *Queue {
 	queue := Queue{}
 	return &queue
+}
+
+func InitResources(clientset *kubernetes.Clientset) map[string]GpuResource {
+	gpu_nodes := getGpuNodes(clientset)
+	resources := make(map[string]GpuResource)
+	for _, node := range gpu_nodes {
+		resources[node.Name] = getNodeGpuReources(node.Name, clientset)
+	}
+	return resources
 }
 
 func initKubernetes() *kubernetes.Clientset {
@@ -88,8 +106,12 @@ func main() {
 	// setup_db()
 	queue := InitQueue()
 	k8s := initKubernetes()
+	gpuResources := InitResources(k8s)
 
-	go queue.schedulingPolicy(k8s)
+	var resourceMutex sync.Mutex
+
+	go queue.schedulingPolicy(k8s, gpuResources, &resourceMutex)
+	go monitorPods(k8s, gpuResources, &resourceMutex)
 
 	router := initRouter(queue)
 	_ = router.Run("localhost:8083")

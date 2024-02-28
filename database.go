@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -13,7 +12,6 @@ func connectDb() *sql.DB {
 	if err != nil {
 		panic(err.Error())
 	}
-	defer db.Close()
 
 	// Use the vroom database
 	_, err = db.Exec("USE vroom")
@@ -43,10 +41,12 @@ func setupDb(db *sql.DB) {
 		batch_size INT
     )`)
 	if err != nil {
+		db.Close()
 		panic(err.Error())
 	}
 
 	fmt.Println("table 'variants' created successfully")
+	db.Close()
 }
 
 func insertDb(funcInfo FuncInfo) {
@@ -65,19 +65,16 @@ func insertDb(funcInfo FuncInfo) {
 		funcInfo.batch_size,
 	)
 	if err != nil {
+		db.Close()
 		panic(err.Error())
 	}
 
 	fmt.Println("entry variant recorded successfully")
+	db.Close()
 }
 
-func getVariantsForReq(funcReq FuncReq) ([]FuncInfo, error) {
+func getVariantsForReq(funcReq FuncReq, remaining_time float32) ([]FuncInfo, error) {
 	db := connectDb()
-
-	current_ts := time.Now()
-
-	// Time remaining before SLO miss
-	remaining_time := funcReq.deadline - float32(current_ts.Sub(funcReq.timestamp)/time.Millisecond)
 
 	// Query to fetch all relevant resource variants for the given task
 	query := "SELECT * FROM variants WHERE task_identifier = ? AND accuracy >= ? AND latency <= ?;"
@@ -107,6 +104,7 @@ func getVariantsForReq(funcReq FuncReq) ([]FuncInfo, error) {
 		}
 	}
 
+	db.Close()
 	return variants, nil
 }
 

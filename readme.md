@@ -21,3 +21,5 @@ Scheduler
 
 CREATE USER 'vroom'@'%' IDENTIFIED WITH mysql_native_password BY 'vroom';
 GRANT ALL PRIVILEGES ON *.* TO 'vroom'@'%';
+
+curl -X GET 'http://localhost:8083/run?task_id=image-rec&accuracy=50&deadline=2000'
