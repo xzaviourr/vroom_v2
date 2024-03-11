@@ -37,16 +37,17 @@ func (q *Queue) schedulingPolicy(k8s *kubernetes.Clientset, gpuResources map[str
 			remaining_time := funcReq.deadline - float32(current_ts.Sub(funcReq.timestamp)/time.Millisecond)
 
 			variants, _ := getVariantsForReq(funcReq, remaining_time)
+			var selected_variant FuncInfo
 
-			fmt.Println("SLO Miss")
-			for len(variants) == 0 {
-				remaining_time += 1000
-				variants, _ = getVariantsForReq(funcReq, remaining_time)
+			if len(variants) == 0 {
+				fmt.Println("SLO Miss")
+				selected_variant, _ = getMinimumLatencyVariantForReq(funcReq)
+			} else {
+				selected_variant = variants[0]
 			}
 			// Variant selection logic
 			// Node selection logic
 
-			selected_variant := variants[0]
 			selected_node := "ub-10"
 
 			if gpuResources[selected_node].vcore_allocatable < selected_variant.gpu_cores || gpuResources[selected_node].vmem_allocatable < selected_variant.gpu_memory {

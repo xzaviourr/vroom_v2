@@ -108,6 +108,42 @@ func getVariantsForReq(funcReq FuncReq, remaining_time float32) ([]FuncInfo, err
 	return variants, nil
 }
 
+func getMinimumLatencyVariantForReq(funcReq FuncReq) (FuncInfo, error) {
+	db := connectDb()
+
+	// Query to fetch all relevant resource variants for the given task
+	query := "SELECT * FROM variants WHERE task_identifier = ? AND accuracy >= ? ORDER BY latency ASC LIMIT 1;"
+
+	// Execute query on the sql db
+	rows, err := db.Query(query, funcReq.task_identifier, funcReq.accuracy)
+	if err != nil {
+		fmt.Println("Error executing query:", err)
+	}
+	defer rows.Close()
+
+	var variant FuncInfo
+
+	for rows.Next() {
+		if err := rows.Scan(
+			&variant.variant_id,
+			&variant.task_identifier,
+			&variant.gpu_memory,
+			&variant.gpu_cores,
+			&variant.image,
+			&variant.latency,
+			&variant.accuracy,
+			&variant.batch_size,
+		); err != nil {
+			db.Close()
+			panic(err.Error())
+		}
+		break
+	}
+
+	db.Close()
+	return variant, nil
+}
+
 func generateTestDb() {
 	insertDb(FuncInfo{"null", "image-rec", 4, 25, "synergcseiitb/image-rec-resnet:1.6", 5000, 80.0, 200})
 	insertDb(FuncInfo{"null", "image-rec", 4, 50, "synergcseiitb/image-rec-resnet:1.6", 3000, 80.0, 200})
