@@ -4,10 +4,16 @@ FROM nvidia/cuda:12.1.0-runtime-ubuntu20.04
 # WORKDIR /app
 RUN mkdir app
 
+ENV XDG_CACHE_HOME /app/.cache
+
 # Copy the Flask app files to the container
 
 ADD app.py app
 # COPY requirements.txt .
+
+# Create cache directory and set permissions
+RUN mkdir -p $XDG_CACHE_HOME/hub && \
+    chmod -R 777 $XDG_CACHE_HOME
 
 # Install dependencies
 RUN apt-get update

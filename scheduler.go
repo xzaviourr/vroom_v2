@@ -1,51 +1,120 @@
 package main
 
+import (
+	"fmt"
+	"time"
+
+	"k8s.io/client-go/kubernetes"
+)
+
 type ReqQueue struct {
-	readyQueue      map[string][]*FuncReq // Task Id -> Queue mapping
-	blockedQueue    map[string][]*FuncReq // Task Id -> Queue mapping
-	resourceManager *ResourceManager      // Link to the resource manager
+	ReadyQueue      map[string][]*FuncReq // Task Id -> Queue mapping
+	BlockedQueue    map[string][]*FuncReq // Task Id -> Queue mapping
+	ResourceManager *ResourceManager      // Link to the resource manager
+	LoadBalancer    *LoadBalancer         // Link to the load balancer
+}
+
+func initReqQueue(resourceManager *ResourceManager, loadBalancer *LoadBalancer) *ReqQueue {
+	reqQueue := ReqQueue{
+		ReadyQueue:      make(map[string][]*FuncReq),
+		BlockedQueue:    make(map[string][]*FuncReq),
+		ResourceManager: resourceManager,
+		LoadBalancer:    loadBalancer,
+	}
+	return &reqQueue
 }
 
 func (q *ReqQueue) Enque(funcReq *FuncReq) {
-	runningInstances := q.resourceManager.taskStore.Instances[funcReq.TaskIdentifier]
+	runningInstances := q.ResourceManager.TaskStore.Instances[funcReq.TaskIdentifier]
 
+	// Add request to request store
+	q.ResourceManager.RequestStore.newRequest(funcReq)
+
+	// If valid instance is running, add request to ready queue
 	for _, instance := range runningInstances {
 		if instance.Variant.Accuracy >= funcReq.Accuracy {
-			if queue, ok := q.readyQueue[funcReq.TaskIdentifier]; ok {
-				q.readyQueue[funcReq.TaskIdentifier] = append(queue, funcReq)
+			if queue, ok := q.ReadyQueue[funcReq.TaskIdentifier]; ok {
+				q.ReadyQueue[funcReq.TaskIdentifier] = append(queue, funcReq)
 			} else {
-				q.readyQueue[funcReq.TaskIdentifier] = []*FuncReq{funcReq}
+				q.ReadyQueue[funcReq.TaskIdentifier] = []*FuncReq{funcReq}
 			}
 			funcReq.State = "ready"
 			return
 		}
 	}
 
-	// No valid instance is running
-	if queue, ok := q.blockedQueue[funcReq.TaskIdentifier]; ok {
-		q.blockedQueue[funcReq.TaskIdentifier] = append(queue, funcReq)
+	// No valid instance is running, add request to blocked queue
+	if queue, ok := q.BlockedQueue[funcReq.TaskIdentifier]; ok {
+		q.BlockedQueue[funcReq.TaskIdentifier] = append(queue, funcReq)
 	} else {
-		q.blockedQueue[funcReq.TaskIdentifier] = []*FuncReq{funcReq}
+		q.BlockedQueue[funcReq.TaskIdentifier] = []*FuncReq{funcReq}
 	}
 	funcReq.State = "blocked"
 }
 
 func (q *ReqQueue) Front(taskIdentifier string, queueType int) *FuncReq {
 	if queueType == 0 {
-		return q.readyQueue[taskIdentifier][0]
+		return q.ReadyQueue[taskIdentifier][0]
 	} else {
-		return q.blockedQueue[taskIdentifier][0]
+		return q.BlockedQueue[taskIdentifier][0]
 	}
 }
 
 func (q *ReqQueue) Deque(taskIdentifier string, queueType int) {
 	if queueType == 0 {
-		if len(q.readyQueue[taskIdentifier]) != 0 {
-			q.readyQueue[taskIdentifier] = q.readyQueue[taskIdentifier][1:]
+		if len(q.ReadyQueue[taskIdentifier]) != 0 {
+			q.ReadyQueue[taskIdentifier] = q.ReadyQueue[taskIdentifier][1:]
 		}
 	} else {
-		if len(q.blockedQueue[taskIdentifier]) != 0 {
-			q.blockedQueue[taskIdentifier] = q.blockedQueue[taskIdentifier][1:]
+		if len(q.BlockedQueue[taskIdentifier]) != 0 {
+			q.BlockedQueue[taskIdentifier] = q.BlockedQueue[taskIdentifier][1:]
+		}
+	}
+}
+
+func (q *ReqQueue) blockedQueueScheduler(resourceManager *ResourceManager) {
+	fmt.Println("Blocked queue scheduler is running")
+	for {
+		time.Sleep(1 * time.Second)
+		for taskId, reqList := range q.BlockedQueue {
+			runningInstances := q.ResourceManager.TaskStore.getInstances(taskId)
+
+			if len(reqList) == 0 {
+				delete(q.BlockedQueue, taskId)
+				continue
+			}
+
+			funcReq := q.Front(taskId, 1)
+
+			for _, instance := range runningInstances {
+				if instance.Variant.Accuracy >= funcReq.Accuracy {
+					if queue, ok := q.ReadyQueue[funcReq.TaskIdentifier]; ok {
+						q.ReadyQueue[funcReq.TaskIdentifier] = append(queue, funcReq)
+					} else {
+						q.ReadyQueue[funcReq.TaskIdentifier] = []*FuncReq{funcReq}
+					}
+					funcReq.State = "ready"
+					q.Deque(taskId, 1)
+				}
+			}
+		}
+	}
+}
+
+func (q *ReqQueue) schedulingPolicy(clientset *kubernetes.Clientset, resourceManager *ResourceManager) {
+	fmt.Println("Ready queue scheduler is running")
+	for {
+		time.Sleep(5 * time.Second)
+
+		for taskIdentifier, slice := range q.ReadyQueue {
+			instances := resourceManager.TaskStore.getInstances(taskIdentifier)
+			if len(instances) == 0 {
+				continue
+			}
+			for _, req := range slice {
+				go dispatch(instances[0].Url, req.Args, req.ResponseUrl)
+				q.Deque(taskIdentifier, 0)
+			}
 		}
 	}
 }

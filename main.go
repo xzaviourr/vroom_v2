@@ -1,61 +1,19 @@
 package main
 
-import (
-	"flag"
-	"path/filepath"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
-)
-
-func initKubernetes() *kubernetes.Clientset {
-	kubeconfig := flag.String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"),
-		"(optional) absolute path to the kubeconfig file")
-	flag.Parse()
-
-	// build configuration from the config file.
-	config, _ := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-
-	clientset, _ := kubernetes.NewForConfig(config)
-	return clientset
-}
+import "time"
 
 func main() {
-	resourceManager := ResourceManager{
-		variantStore: VariantStore{
-			Variants: make(map[string]*Variant),
-		},
-		nodeStore: NodeStore{
-			Nodes: make(map[string]*Node),
-		},
-		instanceStore: InstanceStore{
-			Instances: make(map[string]*Instance),
-		},
-		taskStore: TaskStore{
-			Instances: make(map[string][]*Instance),
-		},
-		requestStore: RequestStore{
-			Requests: make(map[string]*FuncReq),
-		},
-	}
+	resourceManager := initResourceManager()
+	k8s := initKubernetes(resourceManager)
+	loadBalancer := initLoadBalancer(k8s, resourceManager)
+	reqQueue := initReqQueue(resourceManager, loadBalancer)
 
-	reqQueue := ReqQueue{
-		readyQueue:      make(map[string][]*FuncReq),
-		blockedQueue:    make(map[string][]*FuncReq),
-		resourceManager: &resourceManager,
-	}
+	go k8s.monitorPods()                                         // Serice that handles cleaning of pods
+	go loadBalancer.monitorLoad()                                // Auto scalar of pods
+	go reqQueue.blockedQueueScheduler(resourceManager)           // Blocked queue scheduler
+	go reqQueue.schedulingPolicy(k8s.clientset, resourceManager) // Scheduler
 
-	k8s := initKubernetes()
-	initializeNodes(k8s, &resourceManager)
-	setupDb()
-	initializeVariants(&resourceManager)
-
-	// var resourceMutex sync.Mutex
-
-	// go reqQueue.schedulingPolicy(k8s, gpuResources, &resourceMutex)
-	// go monitorPods(k8s, gpuResources, &resourceMutex)
-
-	router := initServer(&reqQueue, &resourceManager)
+	time.Sleep(2 * time.Second)
+	router := initServer(reqQueue, resourceManager)
 	_ = router.Run("0.0.0.0:8083")
 }

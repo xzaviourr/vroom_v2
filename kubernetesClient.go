@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -11,11 +14,38 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
-func initializeNodes(clientset *kubernetes.Clientset, resourceManager *ResourceManager) {
+type K8s struct {
+	clientset       *kubernetes.Clientset
+	resourceManager *ResourceManager
+}
+
+func initKubernetes(resourceManager *ResourceManager) *K8s {
+	kubeconfig := flag.String("kubeconfig", filepath.Join(homedir.HomeDir(), ".kube", "config"),
+		"(optional) absolute path to the kubeconfig file")
+	flag.Parse()
+
+	// build configuration from the config file.
+	config, _ := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+
+	clientset, _ := kubernetes.NewForConfig(config)
+	k8s := K8s{
+		clientset:       clientset,
+		resourceManager: resourceManager,
+	}
+
+	k8s.initializeNodes()
+	fmt.Println("Kubernetes initialized successfully")
+	fmt.Println("Number of GPU nodes found : ", len(resourceManager.NodeStore.Nodes))
+	return &k8s
+}
+
+func (k8s *K8s) initializeNodes() {
 	labelSelector := "nos.nebuly.com/gpu-partitioning=mps"
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+	nodes, err := k8s.clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -52,11 +82,11 @@ func initializeNodes(clientset *kubernetes.Clientset, resourceManager *ResourceM
 			GpuMemoryUsage:   0.0,
 			GpuCoreUsage:     0.0,
 		}
-		resourceManager.nodeStore.Nodes[node.Name] = &newNode
+		k8s.resourceManager.NodeStore.Nodes[node.Name] = &newNode
 	}
 }
 
-func createPodForInstance(instance *Instance) *core.Pod {
+func (k8s *K8s) createPodForInstance(instance *Instance) *core.Pod {
 	podName := instance.Id
 	namespace := "default"
 	imageName := instance.Variant.Image
@@ -73,7 +103,7 @@ func createPodForInstance(instance *Instance) *core.Pod {
 			Name:      podName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"name":    instance.Variant.TaskId,
+				"name":    podName,
 				"service": "vroom",
 			},
 		},
@@ -115,7 +145,7 @@ func createPodForInstance(instance *Instance) *core.Pod {
 	}
 }
 
-func createServiceForInstance(instance *Instance) *core.Service {
+func (k8s *K8s) createServiceForInstance(instance *Instance) *core.Service {
 	serviceName := instance.Id + "-service" // Define a name for your service
 	internalPort := instance.Variant.Port
 	externalPort := instance.Port // Define the port your service will listen on
@@ -127,6 +157,7 @@ func createServiceForInstance(instance *Instance) *core.Service {
 			Namespace: namespace,
 		},
 		Spec: core.ServiceSpec{
+			Type: core.ServiceTypeClusterIP,
 			Selector: map[string]string{
 				"name": instance.Id, // Match labels with your pod
 			},
@@ -141,60 +172,82 @@ func createServiceForInstance(instance *Instance) *core.Service {
 	}
 }
 
-func deployInstance(instance *Instance, clientset *kubernetes.Clientset) string {
-	pod := createPodForInstance(instance)
-	service := createServiceForInstance(instance)
+func (k8s *K8s) deployInstance(instance *Instance) string {
+	pod := k8s.createPodForInstance(instance)
+	service := k8s.createServiceForInstance(instance)
 
 	// Deploy the Pod
-	_, err := clientset.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+	_, err := k8s.clientset.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		fmt.Println("Error deploying Pod:", err)
 		return ""
 	}
+	fmt.Println("Pod ", pod.Name, " deployed successfully")
 
 	// Deploy the Service
-	_, err = clientset.CoreV1().Services(service.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
+	createdService, err := k8s.clientset.CoreV1().Services(service.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 	if err != nil {
 		fmt.Println("Error deploying Service:", err)
 		return ""
 	}
+	fmt.Println("Service ", service.Name, "deployed successfully")
+
+	fmt.Println(createdService.Spec.ClusterIP)
+	instance.Url = "http://" + createdService.Spec.ClusterIP + ":" + strconv.Itoa(int(instance.Port)) + instance.Variant.EndPoint
 
 	return pod.Name
 }
 
-// func monitorPods(clientset *kubernetes.Clientset, gpuResources map[string]GpuResource, resourceMutex *sync.Mutex) {
-// 	for {
-// 		pods, err := clientset.CoreV1().Pods("default").List(context.TODO(), metav1.ListOptions{
-// 			LabelSelector: "service=vroom",
-// 		})
-// 		if err != nil {
-// 			fmt.Println("Error getting pods:", err)
-// 			continue
-// 		}
+func (k8s *K8s) monitorPods() {
+	fmt.Println("Pod cleaner is running")
+	for {
+		time.Sleep(3 * time.Second) // Adjust the polling interval as needed
 
-// 		for _, pod := range pods.Items {
-// 			if pod.Status.Phase == core.PodSucceeded || pod.Status.Phase == core.PodFailed {
-// 				alloted_resources := make(map[string]int)
-// 				for key, value := range pod.Spec.Containers[0].Resources.Requests {
-// 					alloted_resources[string(key)], _ = strconv.Atoi(value.String())
-// 				}
+		pods, err := k8s.clientset.CoreV1().Pods("default").List(context.TODO(), metav1.ListOptions{
+			LabelSelector: "service=vroom",
+		})
+		if err != nil {
+			fmt.Println("Error getting pods:", err)
+			continue
+		}
 
-// 				resourceMutex.Lock()
-// 				node_resource := gpuResources[pod.Spec.NodeName]
-// 				node_resource.VcoreAllocatable += alloted_resources["nvidia.com/vcore"]
-// 				node_resource.VmemAllocatable += alloted_resources["nvidia.com/vmem"]
-// 				gpuResources[pod.Spec.NodeName] = node_resource
-// 				resourceMutex.Unlock()
+		for _, pod := range pods.Items {
+			podInstance := k8s.resourceManager.InstanceStore.Instances[pod.Name]
 
-// 				// Pod has completed or failed, delete it
-// 				err := clientset.CoreV1().Pods("default").Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-// 				if err != nil {
-// 					fmt.Printf("Error deleting pod %s: %v\n", pod.Name, err)
-// 				} else {
-// 					fmt.Printf("Pod %s deleted\n", pod.Name)
-// 				}
-// 			}
-// 		}
-// 		time.Sleep(5 * time.Second) // Adjust the polling interval as needed
-// 	}
-// }
+			switch pod.Status.Phase {
+			case core.PodSucceeded, core.PodFailed:
+				alloted_resources := make(map[string]int)
+				for key, value := range pod.Spec.Containers[0].Resources.Requests {
+					alloted_resources[string(key)], _ = strconv.Atoi(value.String())
+				}
+
+				// Update resources on Node
+				node := k8s.resourceManager.NodeStore.Nodes[pod.Spec.NodeName]
+				node.VcoreAllocatable += int64(alloted_resources["nvidia.com/vcore"])
+				node.VmemAllocatable += int64(alloted_resources["nvidia.com/vmem"])
+
+				// Update instances on all the entities
+				node.removeRunningInstance(podInstance)
+				k8s.resourceManager.TaskStore.deleteInstance(podInstance)
+				delete(k8s.resourceManager.InstanceStore.Instances, node.Name)
+
+				// Pod has completed or failed, delete it
+				err := k8s.clientset.CoreV1().Pods("default").Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+				if err != nil {
+					fmt.Printf("Error deleting pod %s: %v\n", pod.Name, err)
+				} else {
+					fmt.Printf("Pod %s deleted\n", pod.Name)
+				}
+
+			case core.PodPending:
+				podInstance.State = "pending"
+
+			case core.PodRunning:
+				if podInstance.State != "running" && podInstance.State != "peak" && podInstance.State != "overload" {
+					podInstance.State = "running"
+
+				}
+			}
+		}
+	}
+}

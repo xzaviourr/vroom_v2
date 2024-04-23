@@ -11,7 +11,7 @@ import (
 
 func initServer(reqQueue *ReqQueue, resourceManager *ResourceManager) *gin.Engine {
 	r := gin.Default()
-	fmt.Println("API Server initialized")
+	fmt.Println("API server is running")
 	r.POST("/run", func(c *gin.Context) {
 		var funcReq FuncReq
 
@@ -24,7 +24,6 @@ func initServer(reqQueue *ReqQueue, resourceManager *ResourceManager) *gin.Engin
 		funcReq.RegistrationTs = time.Now()
 		funcReq.State = "new"
 		reqQueue.Enque(&funcReq)
-		resourceManager.requestStore.Requests[funcReq.Uid] = &funcReq
 
 		fmt.Printf("New Request : %s\n", funcReq.Uid)
 		response := fmt.Sprintf("Request id: %s", funcReq.Uid)
@@ -40,9 +39,7 @@ func initServer(reqQueue *ReqQueue, resourceManager *ResourceManager) *gin.Engin
 		}
 
 		variant.Id = uuid.New().String()
-
-		insertVariantInDb(&variant)
-		resourceManager.variantStore.Variants[variant.Id] = &variant
+		resourceManager.VariantStore.addVariant(&variant)
 
 		c.JSON(http.StatusOK, gin.H{"message": "Variant inserted successfully"})
 	})

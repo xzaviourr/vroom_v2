@@ -5,9 +5,13 @@ import torch
 app = Flask(__name__)
 
 # Initialize the summarization pipeline
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=0)
 
-device = torch.device('cuda')
+if torch.cuda.is_available():
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
+
 print("Using device:", device)
 
 @app.route('/summarize', methods=['POST'])

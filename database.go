@@ -3,26 +3,31 @@ package main
 import (
 	"database/sql"
 	"fmt"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
-// import (
-// 	"database/sql"
-// 	"fmt"
+type DatabaseManager struct {
+}
 
-// 	_ "github.com/go-sql-driver/mysql"
-// )
+func initDatabaseManager() *DatabaseManager {
+	databaseManager := DatabaseManager{}
+	databaseManager.setupDb()
+	return &databaseManager
+}
 
-func connectDb() *sql.DB {
+func (dm *DatabaseManager) connectDb() *sql.DB {
 	db, err := sql.Open("mysql", "vroom:vroom@tcp(localhost:3306)/")
 	if err != nil {
 		panic(err.Error())
 	}
+	db.Exec("USE vroom;")
 	return db
 }
 
-func setupDb() {
-	db := connectDb()
-	defer db.Close()
+func (dm *DatabaseManager) setupDb() {
+	db := dm.connectDb()
+
 	// Create the variants table
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Variant (
         Id VARCHAR(255) PRIMARY KEY,
@@ -37,25 +42,28 @@ func setupDb() {
         Accuracy FLOAT,
 		BatchSize INT,
 		EndPoint VARCHAR(255),
-		Port INT
-    )`)
+		Port INT,
+		Capacity FLOAT
+    );`)
 
 	if err != nil {
+		db.Close()
 		panic(err.Error())
 	}
 
-	fmt.Println("Table 'Variant' created successfully")
+	fmt.Println("Database initialized successfully")
+	db.Close()
 }
 
-func insertVariantInDb(variant *Variant) {
-	db := connectDb()
+func (dm *DatabaseManager) insertVariantInDb(variant *Variant) {
+	db := dm.connectDb()
 
-	stmt, _ := db.Prepare("INSERT INTO Variant (TaskId, GpuMemory, GpuCores, " +
+	stmt, _ := db.Prepare("INSERT INTO Variant (Id, TaskId, GpuMemory, GpuCores, " +
 		"Image, StartupLatency, MinLatency, MeanLatency, MaxLatency, Accuracy, " +
-		"BatchSize, EndPoint, Port) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-	defer stmt.Close()
+		"BatchSize, EndPoint, Port, Capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
 	_, err := stmt.Exec(
+		variant.Id,
 		variant.TaskId,
 		variant.GpuMemory,
 		variant.GpuCores,
@@ -68,21 +76,22 @@ func insertVariantInDb(variant *Variant) {
 		variant.BatchSize,
 		variant.EndPoint,
 		variant.Port,
+		variant.Capacity,
 	)
 	if err != nil {
 		db.Close()
 		panic(err.Error())
 	}
 
-	fmt.Println("Insert 'Variant' executed sucessfully")
+	fmt.Println("Variant ", variant.Id, " inserted in the database")
 	db.Close()
 }
 
-func initializeVariants(resourceManager *ResourceManager) {
-	db := connectDb()
+func (dm *DatabaseManager) loadAllVariantsFromDb() map[string]*Variant {
+	db := dm.connectDb()
 
 	// Query to fetch all the variants stored in the database
-	query := "SELECT * FROM variants;"
+	query := "SELECT * FROM Variant;"
 
 	// Execute query on the sql db
 	rows, err := db.Query(query)
@@ -91,96 +100,31 @@ func initializeVariants(resourceManager *ResourceManager) {
 	}
 	defer rows.Close()
 
+	variants := make(map[string]*Variant)
+
 	for rows.Next() {
 		var variant Variant
 		if err := rows.Scan(
-			&variant,
+			&variant.Id,
+			&variant.TaskId,
+			&variant.GpuMemory,
+			&variant.GpuCores,
+			&variant.Image,
+			&variant.StartupLatency,
+			&variant.MinLatency,
+			&variant.MeanLatency,
+			&variant.MaxLatency,
+			&variant.Accuracy,
+			&variant.BatchSize,
+			&variant.EndPoint,
+			&variant.Port,
+			&variant.Capacity,
 		); err == nil {
-			resourceManager.variantStore.Variants[variant.Id] = &variant
+			variants[variant.Id] = &variant
 		}
 	}
 
+	fmt.Println("Total number of variants loaded from DB: ", len(variants))
 	db.Close()
+	return variants
 }
-
-// func getVariantsForReq(funcReq FuncReq, remaining_time float32) ([]FuncInfo, error) {
-// 	db := connectDb()
-
-// 	// Query to fetch all relevant resource variants for the given task
-// 	query := "SELECT * FROM variants WHERE task_identifier = ? AND accuracy >= ? AND latency <= ?;"
-
-// 	// Execute query on the sql db
-// 	rows, err := db.Query(query, funcReq.TaskIdentifier, funcReq.Accuracy, remaining_time)
-// 	if err != nil {
-// 		fmt.Println("Error executing query:", err)
-// 	}
-// 	defer rows.Close()
-
-// 	var variants []FuncInfo
-
-// 	for rows.Next() {
-// 		var variant FuncInfo
-// 		if err := rows.Scan(
-// 			&variant.VariantId,
-// 			&variant.TaskIdentifier,
-// 			&variant.GpuMemory,
-// 			&variant.GpuCores,
-// 			&variant.Image,
-// 			&variant.Latency,
-// 			&variant.Accuracy,
-// 			&variant.BatchSize,
-// 			&variant.Port,
-// 		); err == nil {
-// 			variants = append(variants, variant)
-// 		}
-// 	}
-
-// 	db.Close()
-// 	return variants, nil
-// }
-
-// func getMinimumLatencyVariantForReq(funcReq FuncReq) (FuncInfo, error) {
-// 	db := connectDb()
-
-// 	// Query to fetch all relevant resource variants for the given task
-// 	query := "SELECT * FROM variants WHERE task_identifier = ? AND accuracy >= ? ORDER BY latency ASC LIMIT 1;"
-
-// 	// Execute query on the sql db
-// 	rows, err := db.Query(query, funcReq.TaskIdentifier, funcReq.Accuracy)
-// 	if err != nil {
-// 		fmt.Println("Error executing query:", err)
-// 	}
-// 	defer rows.Close()
-
-// 	var variant FuncInfo
-
-// 	for rows.Next() {
-// 		if err := rows.Scan(
-// 			&variant.VariantId,
-// 			&variant.TaskIdentifier,
-// 			&variant.GpuMemory,
-// 			&variant.GpuCores,
-// 			&variant.Image,
-// 			&variant.Latency,
-// 			&variant.Accuracy,
-// 			&variant.BatchSize,
-// 			&variant.Port,
-// 		); err != nil {
-// 			db.Close()
-// 			panic(err.Error())
-// 		}
-// 		break
-// 	}
-
-// 	db.Close()
-// 	return variant, nil
-// }
-
-// func generateTestDb() {
-// 	insertDb(FuncInfo{"null", "object-detection", 2, 50, "synergcseiitb/object-detection-resnet:v1", 40000, 80.0, 200, 5123})
-// 	insertDb(FuncInfo{"null", "object-detection", 2, 75, "synergcseiitb/object-detection-resnet:v1", 33000, 80.0, 200, 5123})
-// 	insertDb(FuncInfo{"null", "object-detection", 2, 100, "synergcseiitb/object-detection-resnet:v1", 24000, 80.0, 200, 5123})
-// 	insertDb(FuncInfo{"null", "object-detection", 2, 50, "synergcseiitb/object-detection-yolos:v1", 32000, 60.0, 50, 5126})
-// 	insertDb(FuncInfo{"null", "object-detection", 2, 75, "synergcseiitb/object-detection-yolos:v1", 23000, 60.0, 50, 5126})
-// 	insertDb(FuncInfo{"null", "object-detection", 2, 100, "synergcseiitb/object-detection-yolos:v1", 17000, 60.0, 50, 5126})
-// }
