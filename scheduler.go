@@ -25,7 +25,7 @@ func initReqQueue(resourceManager *ResourceManager, loadBalancer *LoadBalancer) 
 }
 
 func (q *ReqQueue) Enque(funcReq *FuncReq) {
-	runningInstances := q.ResourceManager.TaskStore.Instances[funcReq.TaskIdentifier]
+	runningInstances := q.ResourceManager.TaskStore.getInstances(funcReq.TaskIdentifier)
 
 	// Add request to request store
 	q.ResourceManager.RequestStore.newRequest(funcReq)
@@ -111,9 +111,14 @@ func (q *ReqQueue) schedulingPolicy(clientset *kubernetes.Clientset, resourceMan
 			if len(instances) == 0 {
 				continue
 			}
+
+			numberOfInstances := len(instances)
+			requestFlag := 0
 			for _, req := range slice {
-				go dispatch(instances[0].Url, req.Args, req.ResponseUrl)
+				go dispatch(req, instances[requestFlag].Url, instances[requestFlag].Id, instances[requestFlag].Variant.Accuracy, resourceManager.Logger)
 				q.Deque(taskIdentifier, 0)
+				requestFlag += 1
+				requestFlag %= numberOfInstances
 			}
 		}
 	}

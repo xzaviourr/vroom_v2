@@ -240,12 +240,11 @@ func (k8s *K8s) monitorPods() {
 				}
 
 			case core.PodPending:
-				podInstance.State = "pending"
+				podInstance.setState("pending")
 
 			case core.PodRunning:
-				if podInstance.State != "running" && podInstance.State != "peak" && podInstance.State != "overload" {
-					podInstance.State = "running"
-
+				if podInstance.getState() != "running" && podInstance.getState() != "peak" && podInstance.getState() != "overload" {
+					podInstance.setState("running")
 				}
 			}
 		}

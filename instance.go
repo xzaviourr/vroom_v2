@@ -6,15 +6,13 @@ import (
 )
 
 type Instance struct {
-	Id      string   // Unique id for the instance
-	Variant *Variant // Variant info of this instance
-	Node    *Node    // Node info of this instance
-	Port    int64    // Service Port exposed externally
-	Url     string   // Service url : Node IP + External Port + Service End Point
-
-	State      string // State (pending, running, peak, overload, failed)
-	StateMutex sync.Mutex
-
+	Id                  string   // Unique id for the instance
+	Variant             *Variant // Variant info of this instance
+	Node                *Node    // Node info of this instance
+	Port                int64    // Service Port exposed externally
+	Url                 string   // Service url : Node IP + External Port + Service End Point
+	State               string   // State (pending, running, peak, overload, failed)
+	StateMutex          sync.Mutex
 	RequestCounter      int64      // Request arrived in the last monitor cycle
 	RequestCounterMutex sync.Mutex // Request counter mutex
 }

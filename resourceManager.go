@@ -8,6 +8,7 @@ type ResourceManager struct {
 	InstanceStore *InstanceStore
 	TaskStore     *TaskStore
 	RequestStore  *RequestStore
+	Logger        *Logger
 }
 
 func initResourceManager() *ResourceManager {
@@ -17,7 +18,9 @@ func initResourceManager() *ResourceManager {
 		InstanceStore: initInstanceStore(),
 		TaskStore:     initTaskStore(),
 		RequestStore:  initRequestStore(),
+		Logger:        &Logger{},
 	}
+	resourceManager.Logger.DatabaseManager = resourceManager.VariantStore.DatabaseManager
 	fmt.Println("Resource Manager Initialized Successfully")
 	return &resourceManager
 }

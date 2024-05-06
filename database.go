@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// Database handler
 type DatabaseManager struct {
 }
 
@@ -16,6 +17,7 @@ func initDatabaseManager() *DatabaseManager {
 	return &databaseManager
 }
 
+// Returns a connection object with the db
 func (dm *DatabaseManager) connectDb() *sql.DB {
 	db, err := sql.Open("mysql", "vroom:vroom@tcp(localhost:3306)/")
 	if err != nil {
@@ -25,6 +27,7 @@ func (dm *DatabaseManager) connectDb() *sql.DB {
 	return db
 }
 
+// Creates necessary db schema
 func (dm *DatabaseManager) setupDb() {
 	db := dm.connectDb()
 
@@ -51,10 +54,36 @@ func (dm *DatabaseManager) setupDb() {
 		panic(err.Error())
 	}
 
+	// Create the logs table
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Logs (
+		RequestId VARCHAR(255) NOT NULL,
+		TaskIdentifier VARCHAR(255),
+		Deadline FLOAT,
+		Accuracy FLOAT,
+		RequestSize INT,
+		RegistrationTs TIMESTAMP,
+		DeployInstanceTs TIMESTAMP,
+		SentForExecutionTs TIMESTAMP,
+		ResponseTs TIMESTAMP,
+		SelectedNode VARCHAR(255),
+		SelectedVariantId VARCHAR(255),
+		FinalState VARCHAR(255),
+		ErrorMessage TEXT,
+		TotalTimeTaken FLOAT,
+		VariantAccuracy FLOAT,
+		PRIMARY KEY (RequestId)
+	);`)
+
+	if err != nil {
+		db.Close()
+		panic(err.Error())
+	}
+
 	fmt.Println("Database initialized successfully")
 	db.Close()
 }
 
+// Insert a variant into the Db
 func (dm *DatabaseManager) insertVariantInDb(variant *Variant) {
 	db := dm.connectDb()
 
@@ -87,6 +116,40 @@ func (dm *DatabaseManager) insertVariantInDb(variant *Variant) {
 	db.Close()
 }
 
+func (dm *DatabaseManager) insertLogInDb(log *LogEntry) {
+	db := dm.connectDb()
+
+	stmt, _ := db.Prepare("INSERT INTO Logs (RequestId, TaskIdentifier, Deadline, Accuracy, " +
+		"RequestSize, RegistrationTs, DeployInstanceTs, SentForExecutionTs, ResponseTs, SelectedNode, " +
+		"SelectedVariantId, FinalState, ErrorMessage, TotalTimeTaken, VariantAccuracy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
+	_, err := stmt.Exec(
+		log.RequestId,
+		log.TaskIdentifier,
+		log.Deadline,
+		log.Accuracy,
+		log.RequestSize,
+		log.RegistrationTs,
+		log.DeployInstanceTs,
+		log.SentForExecutionTs,
+		log.ResponseTs,
+		log.SelectedNode,
+		log.SelectedVariantId,
+		log.FinalState,
+		log.ErrorMessage,
+		log.TotalTimeTaken,
+		log.VariantAccuracy,
+	)
+	if err != nil {
+		db.Close()
+		panic(err.Error())
+	}
+
+	fmt.Println("Response logged")
+	db.Close()
+}
+
+// Fetches all the variants from the db
 func (dm *DatabaseManager) loadAllVariantsFromDb() map[string]*Variant {
 	db := dm.connectDb()
 

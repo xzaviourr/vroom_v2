@@ -5,15 +5,15 @@ curl -X POST http://localhost:8083/insert \
         "gpu-memory": 4,
         "gpu-cores": 50,
         "image": "synergcseiitb/bart-large-cnn-text_summarization",
-        "startup-latency": 30,
-        "min-latency": 2,
-        "mean-latency": 8,
-        "max-latency": 16,
+        "startup-latency": 30000,
+        "min-latency": 2000,
+        "mean-latency": 8000,
+        "max-latency": 16000,
         "accuracy": 85,
         "batch-size": 32,
         "end-point": "/summarize",
         "port": 4444,
-        "capacity": 30
+        "capacity": 2
      }'
 
 curl -X POST http://localhost:8083/insert \
@@ -23,15 +23,15 @@ curl -X POST http://localhost:8083/insert \
         "gpu-memory": 4,
         "gpu-cores": 70,
         "image": "synergcseiitb/bart-large-cnn-text_summarization",
-        "startup-latency": 30,
-        "min-latency": 2,
-        "mean-latency": 7,
-        "max-latency": 14,
+        "startup-latency": 30000,
+        "min-latency": 2000,
+        "mean-latency": 7000,
+        "max-latency": 14000,
         "accuracy": 85,
         "batch-size": 32,
         "end-point": "/summarize",
         "port": 4444,
-        "capacity": 35
+        "capacity": 3
      }'
 
 curl -X POST http://localhost:8083/insert \
@@ -42,14 +42,14 @@ curl -X POST http://localhost:8083/insert \
         "gpu-cores": 90,
         "image": "synergcseiitb/bart-large-cnn-text_summarization",
         "startup-latency": 28,
-        "min-latency": 1.5,
-        "mean-latency": 6,
-        "max-latency": 11,
+        "min-latency": 1500,
+        "mean-latency": 6000,
+        "max-latency": 11000,
         "accuracy": 85,
         "batch-size": 32,
         "end-point": "/summarize",
         "port": 4444,
-        "capacity": 45
+        "capacity": 4
      }'
 
 curl -X POST http://localhost:8083/insert \
@@ -59,13 +59,13 @@ curl -X POST http://localhost:8083/insert \
         "gpu-memory": 4,
         "gpu-cores": 100,
         "image": "synergcseiitb/bart-large-cnn-text_summarization",
-        "startup-latency": 28,
-        "min-latency": 1.5,
-        "mean-latency": 5,
-        "max-latency": 10,
+        "startup-latency": 28000,
+        "min-latency": 15000,
+        "mean-latency": 5000,
+        "max-latency": 10000,
         "accuracy": 85,
         "batch-size": 32,
         "end-point": "/summarize",
         "port": 4444,
-        "capacity": 50
+        "capacity": 5
      }'

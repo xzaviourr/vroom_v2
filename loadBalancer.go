@@ -25,7 +25,7 @@ func initLoadBalancer(k8s *K8s, resourceManager *ResourceManager) *LoadBalancer 
 func (lb *LoadBalancer) monitorLoad() {
 	fmt.Println("Load Balancer is running")
 	for {
-		time.Sleep(3 * time.Second) // Cycle duration
+		time.Sleep(5 * time.Second) // Cycle duration
 
 		taskCapacity := lb.ResourceManager.TaskStore.getMaxLoadLimits()
 		for taskId := range lb.ResourceManager.RequestStore.Requests {
@@ -64,7 +64,7 @@ func (lb *LoadBalancer) getFreePort(nodeName string) int64 {
 
 func (lb *LoadBalancer) createNewInstance(taskId string, load int64, capacity float32) {
 	// Variant Selection Logic
-	variantId := "d3723a40-d95b-4d32-9d08-532770fb6ec2"
+	variantId := "4788d252-3481-4618-a83f-87ed1bfb8875"
 	// Node Selection Logic
 	nodeName := "ub-10"
 

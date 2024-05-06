@@ -69,15 +69,14 @@ async def main():
         allRequests = datasetPerSec[sec]
         print("Total requests this second : ", len(datasetPerSec[sec]))
 
-        await process_requests(allRequests[:25])
+        await process_requests(allRequests[:10])
 
         end_time = time.time()
         time_taken = (end_time - start_time) * 1000 # milli seconds
         
         remaining_time = 1000 - time_taken
         if remaining_time > 0:
-            await asyncio.sleep(remaining_time / 1000.0)
-        break
+            await asyncio.sleep(10*(remaining_time / 1000.0))
 
 if __name__ == "__main__":
     asyncio.run(main())
