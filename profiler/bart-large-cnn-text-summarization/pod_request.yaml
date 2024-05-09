@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: ts
+  name: ts
+spec:
+  containers:
+  - image: synergcseiitb/bart-large-cnn-text_summarization
+    imagePullPolicy: Never
+    name: ts
+    ports:
+    - containerPort: 4444
+    resources:
+      limits:
+        nvidia.com/vcore: 100
+        nvidia.com/vmem: 14
+      requests:
+        nvidia.com/vcore: 100
+        nvidia.com/vmem: 14
+  hostIPC: true
+  restartPolicy: OnFailure
+  securityContext:
+    runAsUser: 1000
