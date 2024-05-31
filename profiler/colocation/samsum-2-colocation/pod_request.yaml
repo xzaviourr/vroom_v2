@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: ts2
+  name: ts2
+spec:
+  containers:
+  - image: synergcseiitb/bart-large-cnn-samsum-text_summarization
+    imagePullPolicy: Never
+    name: ts1
+    ports:
+    - containerPort: 5555
+    resources:
+      limits:
+        nvidia.com/vcore: 50
+        nvidia.com/vmem: 8
+      requests:
+        nvidia.com/vcore: 50
+        nvidia.com/vmem: 8
+  hostIPC: true
+  restartPolicy: OnFailure
+  securityContext:
+    runAsUser: 1000

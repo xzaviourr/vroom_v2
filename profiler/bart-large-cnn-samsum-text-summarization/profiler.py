@@ -23,7 +23,7 @@ def check_pod_readiness(pod_name):
     return readiness_str == "True"
 
 def send_post_request(pod_ip):
-    api_url = f"http://{pod_ip}:4444/summarize"
+    api_url = f"http://{pod_ip}:5555/summarize"
     headers = {"Content-Type": "application/json"}
     data = {
         "text": "Scientists have discovered a new species of dinosaur in China. The new species belongs to the theropod family, which includes other well-known dinosaurs like the T. rex and velociraptor. The researchers named the new species Haplocheirus sollers, which means 'simple-handed skillful hunter'. The dinosaur lived around 160 million years ago and had long, slender arms and a unique skull."
@@ -36,7 +36,7 @@ def send_post_request(pod_ip):
         return False
     
 async def send_async_post_request(session, pod_ip):
-    api_url = f"http://{pod_ip}:4444/summarize"  # Assuming the endpoint is /summarize
+    api_url = f"http://{pod_ip}:5555/summarize"  # Assuming the endpoint is /summarize
     headers = {"Content-Type": "application/json"}
     data = {
         "text": "Scientists have discovered a new species of dinosaur in China. The new species belongs to the theropod family, which includes other well-known dinosaurs like the T. rex and velociraptor. The researchers named the new species Haplocheirus sollers, which means 'simple-handed skillful hunter'. The dinosaur lived around 160 million years ago and had long, slender arms and a unique skull."
@@ -58,7 +58,7 @@ def measure_start_time(start_time):
 
     # Poll for API readiness
     print("Waiting for the API server to become ready...")
-    max_attempts = 120  # Maximum number of attempts
+    max_attempts = 300  # Maximum number of attempts
     attempt = 0
     while attempt < max_attempts:
         if send_post_request(pod_ip):
@@ -105,9 +105,9 @@ def run_simulation(memory_values:List, compute_values:List, load:List):
                     "containers": [
                         {
                             "name": "ts",
-                            "image": "synergcseiitb/bart-large-cnn-text_summarization",
+                            "image": "synergcseiitb/bart-large-cnn-samsum-text_summarization",
                             "imagePullPolicy": "Never",
-                            "ports": [{"containerPort": 4444}],
+                            "ports": [{"containerPort": 5555}],
                             "resources": {
                                 "requests": {"nvidia.com/vcore": com, "nvidia.com/vmem": mem},
                                 "limits": {"nvidia.com/vcore": com, "nvidia.com/vmem": mem},
@@ -145,7 +145,7 @@ def run_simulation(memory_values:List, compute_values:List, load:List):
             subprocess.run(["kubectl", "delete", "pod", "ts"])
 
 if __name__ == "__main__":
-    memory_values = [4, 6, 8, 10, 12, 14]
+    memory_values = [12, 14, 16]
     compute_values = [10, 20, 40, 60, 80, 100]
     load = [1, 2, 4, 8, 16, 32, 64, 128]
 

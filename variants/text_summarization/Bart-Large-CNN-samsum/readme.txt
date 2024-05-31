@@ -17,6 +17,10 @@ List of commands-
                 "summary": "Jeff wants to train a Transformers model on Amazon SageMaker. Philipp says he can use the new Hugging Face Deep Learning Container. Jeff can find the documentation here."
                 }
 
+
+    * Build - sudo docker build -t synergcseiitb/bart-large-cnn-samsum-text_summarization .
+    * Run - sudo docker run -d --gpus all -p 5555:5555 --runtime=nvidia synergcseiitb/bart-large-cnn-samsum-text_summarization
+
 List of items in dockerfile that can be changed-
     * Base image should be nvidia/cuda:12.1.0-runtime-ubuntu20.04, on 18.04 there were many version errors due to python3.6 and pip9
     * timm package needs to be installed(pipreqs cannot capture this package from app.py)

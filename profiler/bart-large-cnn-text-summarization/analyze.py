@@ -3,14 +3,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Read the CSV file into a DataFrame
-df = pd.read_csv("bart-large-cnn-text-summarization-results.csv")
+df = pd.read_csv("results.csv")
 df['latency'] = df['latency']/1000
 df['startup_time'] = df['startup_time']/1000
 
 # Pivot the DataFrame to reshape it for heatmap
 
-load_mapping = {1:"low", 5:"moderate", 20:"high"}
-for load in [1, 5, 20]:
+for load in [1, 2, 4, 8, 16, 32, 64, 128]:
     df_load = df[df["load"] == load]
     df_pivot = df_load.pivot_table(index='memory', columns='compute', values=['startup_time', 'throughput', 'latency'])
 
@@ -28,6 +27,6 @@ for load in [1, 5, 20]:
         plt.yticks(rotation=0)
         plt.gca().invert_yaxis()
 
-    plt.suptitle(f'Bart-large-cnn-text_summarization - Load : {load_mapping[load]}', fontsize=16)  # Master title
+    plt.suptitle(f'Bart-large-cnn-text_summarization - Load : {load}', fontsize=16)  # Master title
     plt.tight_layout()
     plt.savefig(f"{load}.png")
