@@ -23,7 +23,7 @@ colocated4 = colocated4[['memory', 'compute', 'load', 'throughput', 'latency', '
 compute_power = [20, 40, 60, 80, 100]
 memory = [4, 6, 8, 10, 12, 14]
 for com in compute_power:
-    plt.figure(figsize=(30,15))
+    plt.figure(figsize=(20,20))
     index = 1
     for mem in memory:
         plt.subplot(3, 2, index)
@@ -46,11 +46,11 @@ for com in compute_power:
         plt.ylabel("Throughput (Reqs / sec)")
         plt.xticks([2, 4, 8, 16, 32, 64, 128])
 
-    plt.suptitle(f"Throughput vs Load for different values of GPU memory with fixed GPU compute = {com}% cores")
+    plt.suptitle(f"These graphs shows the variation in throughput by varying the number of colocated workoads.\nEach graph denotes the overall throughput achieved by dividing the compute resources ({com}% compute cores) equally among the colocated workloads.\nIt can be seen that, huge performance gains can be achieved by running colocated workloads with divided resources as compared to running a single workload with full resources.")
     plt.savefig(f"ThroughputCompute{com}.png")
 
 for com in compute_power:
-    plt.figure(figsize=(30,15))
+    plt.figure(figsize=(20,20))
     index = 1
     for mem in memory:
         plt.subplot(3, 2, index)
