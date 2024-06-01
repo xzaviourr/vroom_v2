@@ -2,8 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    name: ts3
-  name: ts3
+    name: ts4
+  name: ts4
 spec:
   containers:
   - image: synergcseiitb/bart-large-cnn-text_summarization
@@ -13,11 +13,11 @@ spec:
     - containerPort: 4444
     resources:
       limits:
-        nvidia.com/vcore: 30
-        nvidia.com/vmem: 4
+        nvidia.com/vcore: 20
+        nvidia.com/vmem: 2
       requests:
-        nvidia.com/vcore: 30
-        nvidia.com/vmem: 4
+        nvidia.com/vcore: 20
+        nvidia.com/vmem: 2
   hostIPC: true
   restartPolicy: OnFailure
   securityContext:

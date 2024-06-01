@@ -6,18 +6,18 @@ metadata:
   name: ts3
 spec:
   containers:
-  - image: synergcseiitb/bart-large-cnn-text_summarization
+  - image: synergcseiitb/bart-large-cnn-samsum-text_summarization
     imagePullPolicy: Never
     name: ts1
     ports:
-    - containerPort: 4444
+    - containerPort: 5555
     resources:
       limits:
-        nvidia.com/vcore: 30
-        nvidia.com/vmem: 4
+        nvidia.com/vcore: 40
+        nvidia.com/vmem: 2
       requests:
-        nvidia.com/vcore: 30
-        nvidia.com/vmem: 4
+        nvidia.com/vcore: 40
+        nvidia.com/vmem: 2
   hostIPC: true
   restartPolicy: OnFailure
   securityContext:
