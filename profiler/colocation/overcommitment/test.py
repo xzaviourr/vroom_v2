@@ -69,7 +69,7 @@ for mem in memory:
         if com == 200:
             plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'Default no limit setup')
         elif com > 100:
-            plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'GPU cores (overprovisioned): {com/2}% and {com/2}%')
+            plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores (overprovisioned): {com/2}% and {com/2}%')
         else:
             plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores: {com/2}% and {com/2}%')
     
@@ -87,7 +87,7 @@ for mem in memory:
         if com == 300:
             plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'Default no limit setup')
         elif com > 100:
-            plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'GPU cores (overprovisioned): {round(com/3, 2)}%, {round(com/3, 2)}%, and {round(com/3, 2)}%')
+            plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores (overprovisioned): {round(com/3, 2)}%, {round(com/3, 2)}%, and {round(com/3, 2)}%')
         else:
             plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores = {round(com/3, 2)}%, {round(com/3, 2)}%, and {round(com/3, 2)}%')
         
@@ -106,7 +106,7 @@ for mem in memory:
         if com == 400:
             plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'Default no limit setup')
         elif com > 100:
-            plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'GPU cores (overprovisioned): {com/4}%, {com/4}%, {com/4}%, and {com/4}%')
+            plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores (overprovisioned): {com/4}%, {com/4}%, {com/4}%, and {com/4}%')
         else:
             plt.plot(subset['load'], subset['throughput'], marker='o', label=f"GPU cores = {com/4}%, {com/4}%, {com/4}%, and {com/4}%")
     
