@@ -7,8 +7,6 @@ import asyncio
 import aiohttp
 import logging
 import threading
-import matplotlib.pyplot as plt
-import pandas as pd
 
 aiohttp_logger = logging.getLogger("aiohttp")
 aiohttp_logger.setLevel(logging.ERROR)
@@ -19,26 +17,6 @@ def monitor_gpu_utilization(interval, stop_event, results):
         utilization = int(result.stdout.decode('utf-8').strip())
         results.append((time.time(), utilization))
         time.sleep(interval)
-
-def plot_gpu_utilization(results, name):
-    df = pd.DataFrame(results, columns=['Time', 'GPU_Utilization'])
-    df['Time'] = df['Time'] - df['Time'].iloc[0]  # Normalize the time
-    plt.figure(figsize=(10, 10))
-    plt.plot(df['Time'], df['GPU_Utilization'])
-    plt.xlabel('Time (s)')
-    plt.ylabel('GPU Utilization (%)')
-    plt.title(f'GPU Utilization Over Time\n{name[:-4]}')
-    plt.grid(True)
-    plt.savefig(f"{name}-utilization.png")
-
-def plot_latencies(results, name):
-    plt.figure(figsize=(10, 10))
-    plt.hist(results, bins=30, color='blue', edgecolor='black')
-    plt.xlabel('Response Time (s)')
-    plt.ylabel('Frequency')
-    plt.title(f'Distribution of Response Times\n{name[:-4]}')
-    plt.grid(True)
-    plt.savefig(f"{name}-responsetime.png")
 
 class Pod:
     def __init__(self, memory, compute):
@@ -93,18 +71,23 @@ async def send_async_post_request(session, service_ip, port):
         print(f"Error while sending POST request: {e}")
         return False, None
 
-async def measure_overall_throughput(num_requests, pods, ports, name):
+async def measure_overall_throughput(num_requests, pods, ports):
     ips = [get_service_ip(f"{name}-service") for name in pods]
     n = len(pods)
     sessions = [aiohttp.ClientSession() for _ in range(n)]
+    
+    tasks = []
+    counter = 1
 
     start_time = time.time()
-    
-    tasks = [send_async_post_request(sessions[ind%n], ips[ind%n], ports[ind%n]) for ind in range(num_requests)]
+    for second in range(15):
+        for req in range(num_requests):
+            tasks.append(send_async_post_request(sessions[counter%n], ips[counter%n], ports[counter%n]))
+            counter += 1
+        time.sleep(1)
     results = await asyncio.gather(*tasks)
-
     end_time = time.time()
-    
+
     for session in sessions:
         session.close()
 
@@ -112,10 +95,10 @@ async def measure_overall_throughput(num_requests, pods, ports, name):
     for success, latency in results:    
         if success:
             latencies.append(latency)
-    # plot_latencies(latencies, name)
 
-    avg_latency = sum(latency for success, latency in results if success) / num_requests   
-    return num_requests / (end_time - start_time) , avg_latency, latencies
+    total_time = sum(latency for success, latency in results if success)
+    avg_latency = total_time / num_requests   
+    return (num_requests*15) / (end_time - start_time) , avg_latency, latencies
 
 def create_pod_yaml(mem, com, name, port1, port2):
     yaml_content_pod = {
@@ -191,25 +174,22 @@ def measure_start_time(start_time, pod_name, port):
         return startup_time_ms
     return -1
 
-def run_simulation(pods:List, load:List):
+def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
     for pod in pods:
         # Create YAML content
-        create_pod_yaml(pod[0].memory, pod[0].compute, "ts1", 5555, 12345)
-
         start_time = time.time()
-        # Apply YAML file using kubectl
-        subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
-        subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
-        
-        create_pod_yaml(pod[1].memory, pod[1].compute, "ts2", 5555, 12346)
-        subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
-        subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
+        for ind in range(1, num_colocation+1):
+            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 5555, 12344 + ind)
+            subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
+            subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
-        while check_pod_readiness("ts1") == False or check_pod_readiness("ts2") == False:
-            time.sleep(1)
+        for ind in range(1, num_colocation+1):
+            while check_pod_readiness(f"ts{ind}") == False:
+                time.sleep(1)
 
-        startup_time = measure_start_time(start_time, "ts1", 12345)
-        startup_time = measure_start_time(start_time, "ts2", 12346)
+        startup_time = 0
+        for ind in range(1, num_colocation+1):
+            startup_time = measure_start_time(start_time, f"ts{ind}", 12344 + ind)
 
         for num_requests in load:
             stop_event = threading.Event()
@@ -217,41 +197,49 @@ def run_simulation(pods:List, load:List):
             monitoring_thread = threading.Thread(target=monitor_gpu_utilization, args=(0.2, stop_event, results))
             monitoring_thread.start()
 
-            name = f"{pod[0].memory}MB-{pod[0].compute}%-{pod[1].memory}MB-{pod[1].compute}%-{num_requests}Reqs"
-            print(f"Running for - mem1:{pod[0].memory}|mem2:{pod[1].memory}|com1:{pod[0].compute}|com2:{pod[1].compute}|load:{num_requests}\n")
-            throughput, latency, latencies = asyncio.run(measure_overall_throughput(num_requests, ["ts1", "ts2"], [12345, 12346], name))
+            s = "Running for - "
+            for ind in range(1, num_colocation+1):
+                s = s + f"mem{ind}:{pod[ind-1].memory}|com{ind}:{pod[ind-1].compute}|"
+            s += f"Load:{num_requests}/sec\n"
+            print(s)
+
+            throughput, latency, latencies = asyncio.run(measure_overall_throughput(num_requests, [f"ts{ind}" for ind in range(1, num_colocation+1)], [12344+ind for ind in range(1, num_colocation+1)]))
 
             stop_event.set()
             monitoring_thread.join()
-            # plot_gpu_utilization(results, name)
 
-            output_str = f"{pod[0].memory},{pod[0].compute},{pod[1].memory},{pod[1].compute},{round(startup_time,3)},{num_requests},{round(throughput,3)},{round(latency,3)},{latencies},{results}\n"
-            with open("results.csv", 'a') as file:
-                file.write(output_str)
+            s = ""
+            for ind in range(1, num_colocation+1):
+                s = s + f"{pod[ind-1].memory},{pod[ind-1].compute},"
+            s += f'{round(startup_time, 3)},{num_requests},{round(throughput, 3)},{round(latency, 3)},"{latencies}","{results}"\n'
+            with open(filename, 'a') as file:
+                file.write(s)
 
-        subprocess.run(["kubectl", "delete", "pod", "ts1"])
-        subprocess.run(["kubectl", "delete", "pod", "ts2"])
+        for ind in range(1, num_colocation+1):
+            subprocess.run(["kubectl", "delete", "pod", f"ts{ind}"])
 
 if __name__ == "__main__":
     pods = [
-        [Pod(6, 10), Pod(6, 10)],   # 12, 20
-        [Pod(6, 20), Pod(6, 20)],   # 12, 40
-        [Pod(6, 30), Pod(6, 30)],   # 12, 60
-        [Pod(6, 40), Pod(6, 40)],   # 12, 80
-        [Pod(6, 50), Pod(6, 50)],   # 12, 100
-        [Pod(6, 60), Pod(6, 60)],   # 12, 120
-        [Pod(6, 70), Pod(6, 70)],   # 12, 140
-        [Pod(6, 80), Pod(6, 80)],   # 12, 160
-        [Pod(6, 90), Pod(6, 90)],   # 12, 180
-        [Pod(6, 100), Pod(6, 100)],   # 12, 200
+        [Pod(3, 10), Pod(3, 10), Pod(3, 10), Pod(3, 10)],   # 12, 40
+        [Pod(3, 20), Pod(3, 20), Pod(3, 20), Pod(3, 20)],   # 12, 80
+        [Pod(3, 30), Pod(3, 30), Pod(3, 30), Pod(3, 30)],   # 12, 120
+        [Pod(3, 40), Pod(3, 40), Pod(3, 40), Pod(3, 40)],   # 12, 160
+        [Pod(3, 50), Pod(3, 50), Pod(3, 50), Pod(3, 50)],   # 12, 200
+        [Pod(3, 60), Pod(3, 60), Pod(3, 60), Pod(3, 60)],   # 12, 240
+        [Pod(3, 70), Pod(3, 70), Pod(3, 70), Pod(3, 70)],   # 12, 280
+        [Pod(3, 80), Pod(3, 80), Pod(3, 80), Pod(3, 80)],   # 12, 320
+        [Pod(3, 90), Pod(3, 90), Pod(3, 90), Pod(3, 90)],   # 12, 360
+        [Pod(3, 100), Pod(3, 100), Pod(3, 100), Pod(3, 100)],   # 12, 400
     ]
-    # load = [2, 4, 8, 16, 32, 64, 128]
-    load = [64, 128]
+    load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    num_colocation = 4
+    file_name = "samsum-4-12GB.csv"
 
-    output_str = f"memory1,compute1,memory2,compute2,startup_time,load,throughput,latency\n"
-    with open("results.csv", 'a') as file:
-        file.write(output_str)
+    s = ""
+    for ind in range(1, num_colocation+1):
+        s += f"memory{ind},compute{ind},"
+    s += "startup_time,arrival_rate,throughput,average_latency,latencies,utilization\n"
+    with open(file_name, 'a') as file:
+        file.write(s)
 
-    run_simulation(pods, load)
-
-
+    run_simulation(pods, load, num_colocation, file_name)

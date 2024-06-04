@@ -20,26 +20,6 @@ def monitor_gpu_utilization(interval, stop_event, results):
         results.append((time.time(), utilization))
         time.sleep(interval)
 
-def plot_gpu_utilization(results, name):
-    df = pd.DataFrame(results, columns=['Time', 'GPU_Utilization'])
-    df['Time'] = df['Time'] - df['Time'].iloc[0]  # Normalize the time
-    plt.figure(figsize=(10, 10))
-    plt.plot(df['Time'], df['GPU_Utilization'])
-    plt.xlabel('Time (s)')
-    plt.ylabel('GPU Utilization (%)')
-    plt.title(f'GPU Utilization Over Time\n{name[:-4]}')
-    plt.grid(True)
-    plt.savefig(f"{name}-utilization.png")
-
-def plot_latencies(results, name):
-    plt.figure(figsize=(10, 10))
-    plt.hist(results, bins=30, color='blue', edgecolor='black')
-    plt.xlabel('Response Time (s)')
-    plt.ylabel('Frequency')
-    plt.title(f'Distribution of Response Times\n{name[:-4]}')
-    plt.grid(True)
-    plt.savefig(f"{name}-responsetime.png")
-
 class Pod:
     def __init__(self, memory, compute):
         self.memory = memory
@@ -93,7 +73,7 @@ async def send_async_post_request(session, service_ip, port):
         print(f"Error while sending POST request: {e}")
         return False, None
 
-async def measure_overall_throughput(num_requests, pods, ports, name):
+async def measure_overall_throughput(num_requests, pods, ports):
     ips = [get_service_ip(f"{name}-service") for name in pods]
     n = len(pods)
     sessions = [aiohttp.ClientSession() for _ in range(n)]
@@ -112,7 +92,6 @@ async def measure_overall_throughput(num_requests, pods, ports, name):
     for success, latency in results:    
         if success:
             latencies.append(latency)
-    # plot_latencies(latencies, name)
 
     avg_latency = sum(latency for success, latency in results if success) / num_requests   
     return num_requests / (end_time - start_time) , avg_latency, latencies
@@ -193,11 +172,9 @@ def measure_start_time(start_time, pod_name, port):
 
 def run_simulation(pods:List, load:List):
     for pod in pods:
-        # Create YAML content
-        create_pod_yaml(pod[0].memory, pod[0].compute, "ts1", 5555, 12345)
-
         start_time = time.time()
-        # Apply YAML file using kubectl
+        
+        create_pod_yaml(pod[0].memory, pod[0].compute, "ts1", 5555, 12345)
         subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
         subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
         
@@ -205,11 +182,22 @@ def run_simulation(pods:List, load:List):
         subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
         subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
-        while check_pod_readiness("ts1") == False or check_pod_readiness("ts2") == False:
+        create_pod_yaml(pod[2].memory, pod[2].compute, "ts3", 5555, 12347)
+        subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
+        subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
+
+        while check_pod_readiness("ts1") == False:
+            time.sleep(1)
+        
+        while check_pod_readiness("ts2") == False:
+            time.sleep(1)
+        
+        while check_pod_readiness("ts3") == False:
             time.sleep(1)
 
         startup_time = measure_start_time(start_time, "ts1", 12345)
         startup_time = measure_start_time(start_time, "ts2", 12346)
+        startup_time = measure_start_time(start_time, "ts3", 12347)
 
         for num_requests in load:
             stop_event = threading.Event()
@@ -217,20 +205,19 @@ def run_simulation(pods:List, load:List):
             monitoring_thread = threading.Thread(target=monitor_gpu_utilization, args=(0.2, stop_event, results))
             monitoring_thread.start()
 
-            name = f"{pod[0].memory}MB-{pod[0].compute}%-{pod[1].memory}MB-{pod[1].compute}%-{num_requests}Reqs"
-            print(f"Running for - mem1:{pod[0].memory}|mem2:{pod[1].memory}|com1:{pod[0].compute}|com2:{pod[1].compute}|load:{num_requests}\n")
-            throughput, latency, latencies = asyncio.run(measure_overall_throughput(num_requests, ["ts1", "ts2"], [12345, 12346], name))
-
+            print(f"Running for - mem1:{pod[0].memory}|mem2:{pod[1].memory}|mem3:{pod[2].memory}|com1:{pod[0].compute}|com2:{pod[1].compute}|com3:{pod[2].compute}|load:{num_requests}\n")
+            throughput, latency, latencies = asyncio.run(measure_overall_throughput(num_requests, ["ts1", "ts2", "ts3"], [12345, 12346, 12347]))
+            
             stop_event.set()
             monitoring_thread.join()
-            # plot_gpu_utilization(results, name)
 
-            output_str = f"{pod[0].memory},{pod[0].compute},{pod[1].memory},{pod[1].compute},{round(startup_time,3)},{num_requests},{round(throughput,3)},{round(latency,3)},{latencies},{results}\n"
+            output_str = f"{pod[0].memory},{pod[0].compute},{pod[1].memory},{pod[1].compute},{pod[2].memory},{pod[2].compute},{round(startup_time,3)},{num_requests},{round(throughput,3)},{round(latency,3)},'{latencies}','{results}'\n"
             with open("results.csv", 'a') as file:
                 file.write(output_str)
 
         subprocess.run(["kubectl", "delete", "pod", "ts1"])
         subprocess.run(["kubectl", "delete", "pod", "ts2"])
+        subprocess.run(["kubectl", "delete", "pod", "ts3"])
 
 if __name__ == "__main__":
     pods = [
@@ -246,12 +233,10 @@ if __name__ == "__main__":
         [Pod(4, 100), Pod(4, 100), Pod(4, 100)],   # 12, 300
     ]
     # load = [2, 4, 8, 16, 32, 64, 128]
-    load = [64, 128]
+    load = [128]
 
-    output_str = f"memory1,compute1,memory2,compute2,startup_time,load,throughput,latency\n"
+    output_str = f"memory1,compute1,memory2,compute2,memory3,compute3,startup_time,load,throughput,latency,latencies,utilization\n"
     with open("results.csv", 'a') as file:
         file.write(output_str)
 
     run_simulation(pods, load)
-
-
