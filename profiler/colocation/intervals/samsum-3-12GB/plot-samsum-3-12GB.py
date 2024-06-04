@@ -25,7 +25,7 @@ plt.subplot(1, 3, 1)
 for com in compute_values:
     subset = data[(data["compute"] == com) & (data["memory"] == memory)]
     s = ""
-    for ind in range(1, num_colocation):
+    for ind in range(1, num_colocation+1):
         s += f"{com/num_colocation}%, "
 
     if com == num_colocation*100:
