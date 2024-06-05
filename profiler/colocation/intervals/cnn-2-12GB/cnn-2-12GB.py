@@ -112,7 +112,7 @@ def create_pod_yaml(mem, com, name, port1, port2):
             "containers": [
                 {
                     "name": "ts1",
-                    "image": "synergcseiitb/bart-large-cnn-samsum-text_summarization",
+                    "image": "synergcseiitb/bart-large-cnn-text_summarization",
                     "imagePullPolicy": "Never",
                     "ports": [{"containerPort": port1}],
                     "resources": {
@@ -179,7 +179,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
         # Create YAML content
         start_time = time.time()
         for ind in range(1, num_colocation+1):
-            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 5555, 12344 + ind)
+            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 4444, 12344 + ind)
             subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
             subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
@@ -220,20 +220,20 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
 
 if __name__ == "__main__":
     pods = [
-        [Pod(2, 10), Pod(2, 10), Pod(2, 10), Pod(2, 10), Pod(2, 10), Pod(2, 10)],   # 12, 60
-        [Pod(2, 20), Pod(2, 20), Pod(2, 20), Pod(2, 20), Pod(2, 20), Pod(2, 20)],   # 12, 120
-        [Pod(2, 30), Pod(2, 30), Pod(2, 30), Pod(2, 30), Pod(2, 30), Pod(2, 30)],   # 12, 180
-        [Pod(2, 40), Pod(2, 40), Pod(2, 40), Pod(2, 40), Pod(2, 40), Pod(2, 40)],   # 12, 240
-        [Pod(2, 50), Pod(2, 50), Pod(2, 50), Pod(2, 50), Pod(2, 50), Pod(2, 50)],   # 12, 300
-        [Pod(2, 60), Pod(2, 60), Pod(2, 60), Pod(2, 60), Pod(2, 60), Pod(2, 60)],   # 12, 360
-        [Pod(2, 70), Pod(2, 70), Pod(2, 70), Pod(2, 70), Pod(2, 70), Pod(2, 70)],   # 12, 420
-        [Pod(2, 80), Pod(2, 80), Pod(2, 80), Pod(2, 80), Pod(2, 80), Pod(2, 80)],   # 12, 480
-        [Pod(2, 90), Pod(2, 90), Pod(2, 90), Pod(2, 90), Pod(2, 90), Pod(2, 90)],   # 12, 540
-        [Pod(2, 100), Pod(2, 100), Pod(2, 100), Pod(2, 100), Pod(2, 100), Pod(2, 100)],   # 12, 600
+        [Pod(6, 10), Pod(6, 10)],   # 12, 20
+        [Pod(6, 20), Pod(6, 20)],   # 12, 40
+        [Pod(6, 30), Pod(6, 30)],   # 12, 60
+        [Pod(6, 40), Pod(6, 40)],   # 12, 80
+        [Pod(6, 50), Pod(6, 50)],   # 12, 100
+        [Pod(6, 60), Pod(6, 60)],   # 12, 120
+        [Pod(6, 70), Pod(6, 70)],   # 12, 140
+        [Pod(6, 80), Pod(6, 80)],   # 12, 160
+        [Pod(6, 90), Pod(6, 90)],   # 12, 180
+        [Pod(6, 100), Pod(6, 100)],   # 12, 200
     ]
     load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    num_colocation = 6
-    file_name = "samsum-6-12GB.csv"
+    num_colocation = 2
+    file_name = "cnn-2-12GB.csv"
 
     s = ""
     for ind in range(1, num_colocation+1):

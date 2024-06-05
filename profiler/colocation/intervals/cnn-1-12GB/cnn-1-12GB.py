@@ -7,38 +7,16 @@ import asyncio
 import aiohttp
 import logging
 import threading
-from datetime import datetime, timedelta
-from prometheus_api_client import PrometheusConnect
 
 aiohttp_logger = logging.getLogger("aiohttp")
 aiohttp_logger.setLevel(logging.ERROR)
 
 def monitor_gpu_utilization(interval, stop_event, results):
-    prometheus_url = "http://localhost:9090"  # URL of your Prometheus server
-    prometheus = PrometheusConnect(url=prometheus_url)
-    query = 'DCGM_FI_DEV_GPU_UTIL'  # Metric query for GPU utilization
-
     while not stop_event.is_set():
-        end_time = datetime.now()  # End time (current time)
-        start_time = end_time - timedelta(seconds=2)  # Start time (1 hour ago)
-        step = 1  # Step interval in seconds
-        try:
-            # Execute range query to fetch GPU utilization data
-            result = prometheus.custom_query_range(query=query, start_time=start_time, end_time=end_time, step=step)
-            print("Query Result:", result[0]['values'])
-            results.append((time.time(), float(result[0]['values'][0][1])))
-
-        except Exception as e:
-            print("Error fetching GPU utilization:", e)
-
-        time.sleep(interval)  # Wait for the next query interval
-
-# def monitor_gpu_utilization(interval, stop_event, results):
-#     while not stop_event.is_set():
-#         result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE)
-#         utilization = int(result.stdout.decode('utf-8').strip())
-#         results.append((time.time(), utilization))
-#         time.sleep(interval)
+        result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE)
+        utilization = int(result.stdout.decode('utf-8').strip())
+        results.append((time.time(), utilization))
+        time.sleep(interval)
 
 class Pod:
     def __init__(self, memory, compute):
@@ -134,7 +112,7 @@ def create_pod_yaml(mem, com, name, port1, port2):
             "containers": [
                 {
                     "name": "ts1",
-                    "image": "synergcseiitb/bart-large-cnn-samsum-text_summarization",
+                    "image": "synergcseiitb/bart-large-cnn-text_summarization",
                     "imagePullPolicy": "Never",
                     "ports": [{"containerPort": port1}],
                     "resources": {
@@ -201,7 +179,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
         # Create YAML content
         start_time = time.time()
         for ind in range(1, num_colocation+1):
-            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 5555, 12344 + ind)
+            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 4444, 12344 + ind)
             subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
             subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
@@ -216,7 +194,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
         for num_requests in load:
             stop_event = threading.Event()
             results = []
-            monitoring_thread = threading.Thread(target=monitor_gpu_utilization, args=(1, stop_event, results))
+            monitoring_thread = threading.Thread(target=monitor_gpu_utilization, args=(0.2, stop_event, results))
             monitoring_thread.start()
 
             s = "Running for - "
@@ -253,10 +231,9 @@ if __name__ == "__main__":
         [Pod(12, 90)],   # 12, 90
         [Pod(12, 100)],   # 12, 100
     ]
-    # load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    load = [10]
+    load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     num_colocation = 1
-    file_name = "samsum-1-12GB-prometheus.csv"
+    file_name = "cnn-1-12GB.csv"
 
     s = ""
     for ind in range(1, num_colocation+1):
