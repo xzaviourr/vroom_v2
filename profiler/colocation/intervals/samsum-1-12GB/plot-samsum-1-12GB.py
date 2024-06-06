@@ -48,7 +48,7 @@ plt.xticks(load_values)
 plt.subplot(1, 3, 2)
 dataset = []
 for com in compute_values:
-    latencies = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 10)]["latencies"].iloc[0]
+    latencies = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 12)]["latencies"].iloc[0]
     latencies = ast.literal_eval(latencies)  
     dataset.append(latencies)
 
@@ -64,7 +64,7 @@ plt.grid(True)
 
 plt.subplot(1, 3, 3)
 for com in compute_values:
-    utilization = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 10)]["utilization"].iloc[0]
+    utilization = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 12)]["utilization"].iloc[0]
 
     utilization = ast.literal_eval(utilization)    
     df = pd.DataFrame(utilization, columns=['Time', 'GPU_Utilization'])

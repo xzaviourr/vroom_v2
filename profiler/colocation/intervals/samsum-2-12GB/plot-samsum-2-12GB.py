@@ -2,11 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import ast
 
-data = pd.read_csv("samsum-2-12GB.csv")
+data = pd.read_csv("samsum-2-12GB-prometheus.csv")
 data['memory'] = data['memory1'] + data['memory2']
 data['compute'] = data['compute1'] + data['compute2']
 data = data[["memory", "compute", "load", "throughput", "utilization", "latencies"]]
-data['throughput'] = data['throughput']*15
 
 compute_values = data['compute'].unique()
 
@@ -67,4 +66,4 @@ plt.grid(True)
 plt.legend()
 
 plt.suptitle("Throughput, Utilization and Latency distribution for 2 colocated workloads running with 6GB memory each")
-plt.savefig("samsum-2-12GB.png")
+plt.savefig("samsum-2-12GB-prometheus.png")

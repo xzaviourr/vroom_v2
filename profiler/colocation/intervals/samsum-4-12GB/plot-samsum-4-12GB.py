@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import ast
 
-filename = "samsum-4-12GB.csv"
+filename = "samsum-4-12GB-prometheus.csv"
 num_colocation = 4
 memory = 12
 

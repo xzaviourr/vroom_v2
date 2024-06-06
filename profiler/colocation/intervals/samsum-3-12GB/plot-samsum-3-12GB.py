@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import ast
 
-filename = "samsum-3-12GB.csv"
+filename = "samsum-3-12GB-prometheus.csv"
 num_colocation = 3
 memory = 12
 
@@ -68,8 +68,11 @@ for com in compute_values:
 
     utilization = ast.literal_eval(utilization)    
     df = pd.DataFrame(utilization, columns=['Time', 'GPU_Utilization'])
-    df['Time'] = df['Time'] - df['Time'].iloc[0]  # Normalize the time
-    plt.plot(df['Time'], df['GPU_Utilization'], label=f"GPU cores: {com}%")
+    try:
+        df['Time'] = df['Time'] - df['Time'].iloc[0]  # Normalize the time
+        plt.plot(df['Time'], df['GPU_Utilization'], label=f"GPU cores: {com}%")
+    except:
+        pass
 
 plt.xlabel('Time (s)')
 plt.ylabel('GPU Utilization (%)')

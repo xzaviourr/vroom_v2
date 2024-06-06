@@ -7,16 +7,38 @@ import asyncio
 import aiohttp
 import logging
 import threading
+from datetime import datetime, timedelta
+from prometheus_api_client import PrometheusConnect
 
 aiohttp_logger = logging.getLogger("aiohttp")
 aiohttp_logger.setLevel(logging.ERROR)
 
 def monitor_gpu_utilization(interval, stop_event, results):
+    prometheus_url = "http://localhost:9090"  # URL of your Prometheus server
+    prometheus = PrometheusConnect(url=prometheus_url)
+    query = 'DCGM_FI_DEV_GPU_UTIL'  # Metric query for GPU utilization
+
     while not stop_event.is_set():
-        result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE)
-        utilization = int(result.stdout.decode('utf-8').strip())
-        results.append((time.time(), utilization))
-        time.sleep(interval)
+        end_time = datetime.now()  # End time (current time)
+        start_time = end_time - timedelta(seconds=2)  # Start time (1 hour ago)
+        step = 1  # Step interval in seconds
+        try:
+            # Execute range query to fetch GPU utilization data
+            result = prometheus.custom_query_range(query=query, start_time=start_time, end_time=end_time, step=step)
+            print("Query Result:", result[0]['values'])
+            results.append((time.time(), float(result[0]['values'][0][1])))
+
+        except Exception as e:
+            print("Error fetching GPU utilization:", e)
+
+        time.sleep(interval)  # Wait for the next query interval
+
+# def monitor_gpu_utilization(interval, stop_event, results):
+#     while not stop_event.is_set():
+#         result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE)
+#         utilization = int(result.stdout.decode('utf-8').strip())
+#         results.append((time.time(), utilization))
+#         time.sleep(interval)
 
 class Pod:
     def __init__(self, memory, compute):
@@ -199,7 +221,7 @@ def run_simulation(pods:List, load:List):
         for num_requests in load:
             stop_event = threading.Event()
             results = []
-            monitoring_thread = threading.Thread(target=monitor_gpu_utilization, args=(0.2, stop_event, results))
+            monitoring_thread = threading.Thread(target=monitor_gpu_utilization, args=(1, stop_event, results))
             monitoring_thread.start()
 
             print(f"Running for - mem1:{pod[0].memory}|mem2:{pod[1].memory}|com1:{pod[0].compute}|com2:{pod[1].compute}|load:{num_requests}\n")
@@ -209,7 +231,7 @@ def run_simulation(pods:List, load:List):
             monitoring_thread.join()
 
             output_str = f"{pod[0].memory},{pod[0].compute},{pod[1].memory},{pod[1].compute},{round(startup_time,3)},{num_requests},{round(throughput,3)},{round(latency,3)},{latencies},{results}\n"
-            with open("results.csv", 'a') as file:
+            with open("samsum-2-12GB-prometheus.csv", 'a') as file:
                 file.write(output_str)
 
         subprocess.run(["kubectl", "delete", "pod", "ts1"])
@@ -231,7 +253,7 @@ if __name__ == "__main__":
     load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     output_str = f"memory1,compute1,memory2,compute2,startup_time,load,throughput,latency,latencies,utilization\n"
-    with open("results.csv", 'a') as file:
+    with open("samsum-2-12GB-prometheus.csv", 'a') as file:
         file.write(output_str)
 
     run_simulation(pods, load)

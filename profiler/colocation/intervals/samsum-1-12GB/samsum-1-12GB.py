@@ -253,8 +253,7 @@ if __name__ == "__main__":
         [Pod(12, 90)],   # 12, 90
         [Pod(12, 100)],   # 12, 100
     ]
-    # load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    load = [10]
+    load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     num_colocation = 1
     file_name = "samsum-1-12GB-prometheus.csv"
 
