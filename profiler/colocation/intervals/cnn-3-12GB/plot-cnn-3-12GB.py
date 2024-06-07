@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import ast
 
-filename = "samsum-2-12GB.csv"
-num_colocation = 2
+filename = "cnn-3-12GB.csv"
+num_colocation = 3
 memory = 12
 
 data = pd.read_csv(filename)
@@ -14,10 +14,10 @@ for ind in range(1, num_colocation+1):
     data['memory'] = data['memory'] + data[f'memory{ind}']
     data['compute'] = data['compute'] + data[f'compute{ind}']
 
-data = data[["memory", "compute", "load", "throughput", "utilization", "latencies"]]
+data = data[["memory", "compute", "arrival_rate", "throughput", "utilization", "latencies"]]
 
 compute_values = data['compute'].unique()
-load_values = data['load'].unique()
+load_values = data['arrival_rate'].unique()
 
 plt.figure(figsize=(30, 10))
 
@@ -30,11 +30,11 @@ for com in compute_values:
         s += f"{com/num_colocation}%, "
 
     if com == num_colocation*100:
-        plt.plot(subset['load'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'Default no limit setup')
+        plt.plot(subset['arrival_rate'], subset['throughput'], marker='X', markersize=12, linewidth = 3, label=f'Default no limit setup')
     elif com > 100:
-        plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores (overprovisioned): {s}')
+        plt.plot(subset['arrival_rate'], subset['throughput'], marker='o', label=f'GPU cores (overprovisioned): {s}')
     else:
-        plt.plot(subset['load'], subset['throughput'], marker='o', label=f'GPU cores: {s}')
+        plt.plot(subset['arrival_rate'], subset['throughput'], marker='o', label=f'GPU cores: {s}')
 
 plt.title(f"Distribution of Throughput")
 plt.legend()
@@ -49,7 +49,7 @@ plt.xticks(load_values)
 plt.subplot(1, 3, 2)
 dataset = []
 for com in compute_values:
-    latencies = data[(data['compute'] == com) & (data['memory'] == memory) & (data['load'] == 6)]["latencies"].iloc[0]
+    latencies = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 10)]["latencies"].iloc[0]
     latencies = ast.literal_eval(latencies)  
     dataset.append(latencies)
 
@@ -68,7 +68,7 @@ mini = 90
 minv = 0
 values = []
 for com in compute_values:
-    utilization = data[(data['compute'] == com) & (data['memory'] == memory) & (data['load'] == 4)]["utilization"].iloc[0]
+    utilization = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 10)]["utilization"].iloc[0]
 
     utilization = ast.literal_eval(utilization)    
     df = pd.DataFrame(utilization, columns=['Time', 'GPU_Utilization'])
@@ -78,7 +78,7 @@ for com in compute_values:
     if com == 90:
         minv = activitiy
 
-plt.plot(range(20, 201, 20), values, marker='o')
+plt.plot(range(30, 301, 30), values, marker='o')
 
 
 # Plot the highlighted point with a different color and larger size
@@ -92,7 +92,7 @@ plt.annotate(f'Minimum GPU Activity\nGPU cores: {mini}%\nActivity duration: {min
 
 plt.xlabel('Time (GPU cores allocated)')
 plt.ylabel('Time of GPU activity (s)')
-plt.xticks(range(20, 201, 20))
+plt.xticks(range(30, 301, 30))
 plt.title(f'GPU activity vs GPU cores')
 plt.grid(True)
 
