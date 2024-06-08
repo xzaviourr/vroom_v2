@@ -221,7 +221,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
 
 if __name__ == "__main__":
     load = [2, 4, 6, 8, 10, 12, 14, 16]
-    num_colocation = 1
+    num_colocation = 2
     file_name = "samsum-2-fixed-memory.csv"
     pods = [
         [Pod(6, 20), Pod(6, 20)],
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
-    num_colocation = 4
+    num_colocation = 3
     file_name = "samsum-3-fixed-memory.csv"
     pods = [
         [Pod(4, 20), Pod(4, 20), Pod(4, 20)],
