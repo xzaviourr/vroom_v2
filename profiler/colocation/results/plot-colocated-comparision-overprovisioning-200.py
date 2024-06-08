@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import ast
 
-filename = "samsum-colocated-no-overprovisioning.csv"
+filename = "samsum-colocated-with-overprovisioning-200.csv"
 memory = 12
 
 data = pd.read_csv(filename)
@@ -60,11 +60,11 @@ for co in colocation_values:
     if co == 4:
         minv = activitiy
 
-values = [76, 74, 71, 69]
-plt.plot(range(1, 5, 1), values, marker='o')
-plt.xticks(range(1, 5, 1))
-mini = 4
-minv = 69
+values = [74, 72, 71, 68]
+plt.plot(range(2, 6, 1), values, marker='o')
+plt.xticks(range(2, 6, 1))
+mini = 5
+minv = 68
 
 # Plot the highlighted point with a different color and larger size
 plt.scatter([mini], [minv], color='r', s=100, zorder=5)
@@ -77,8 +77,8 @@ plt.annotate(f'Minimum GPU Activity\nColocation Level: {mini}\nActivity duration
 
 plt.xlabel('Colocation level')
 plt.ylabel('Time of GPU activity (s)')
-plt.title(f'GPU activity vs GPU cores')
+plt.title(f'GPU activity vs Colocation Level')
 plt.grid(True)
 
-plt.suptitle(f"Throughput, Utilization and Latency distribution for text summarization workload running with 12 GB of memory, 100% GPU cores, and varying colocation level")
+plt.suptitle(f"Throughput, Utilization and Latency distribution for text summarization workload running with 16 GB of memory, 200% GPU cores, and varying colocation level")
 plt.savefig(f"{filename[:-4]}.png")

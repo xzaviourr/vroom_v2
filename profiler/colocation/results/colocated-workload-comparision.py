@@ -257,7 +257,7 @@ if __name__ == "__main__":
 
     # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
-    file_name = "samsum-colocated-with-overprovisioning-400.csv"
+    file_name = "samsum-colocated-with-overprovisioning-300.csv"
     pods = [
         [Pod(5, 100), Pod(5, 100), Pod(5, 100)],
         [Pod(4, 75), Pod(4, 75), Pod(4, 75), Pod(4, 75)],
