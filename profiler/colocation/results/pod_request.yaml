@@ -13,11 +13,11 @@ spec:
     - containerPort: 5555
     resources:
       limits:
-        nvidia.com/vcore: 25
-        nvidia.com/vmem: 3
+        nvidia.com/vcore: 75
+        nvidia.com/vmem: 4
       requests:
-        nvidia.com/vcore: 25
-        nvidia.com/vmem: 3
+        nvidia.com/vcore: 75
+        nvidia.com/vmem: 4
   hostIPC: true
   restartPolicy: OnFailure
   securityContext:
