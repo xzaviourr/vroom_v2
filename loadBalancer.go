@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -39,7 +41,7 @@ func (lb *LoadBalancer) monitorLoad() {
 			fmt.Println("Load Balancer : ", taskId, activeLoad, capacity)
 
 			if float32(activeLoad) > capacity*0.8 { // If incoming load crossed 90% limit
-				lb.createNewInstance(taskId, activeLoad, capacity)
+				lb.scaleOperation(taskId, float32(activeLoad/5), capacity)
 			}
 		}
 	}
@@ -62,9 +64,99 @@ func (lb *LoadBalancer) getFreePort(nodeName string) int64 {
 	return -1
 }
 
-func (lb *LoadBalancer) createNewInstance(taskId string, load int64, capacity float32) {
+func (lb *LoadBalancer) findPerformanceKneePointVariant(taskId string, currentArrivalRate float32) *Variant {
+	resourceVariants := lb.ResourceManager.VariantStore.getTaskVariants(taskId)
+
+	// Sort the variant list by (GPUmemory, GPUcores)
+	sort.Slice(resourceVariants, func(i, j int) bool {
+		if resourceVariants[i].GpuMemory == resourceVariants[j].GpuMemory {
+			return resourceVariants[i].GpuCores < resourceVariants[j].GpuCores
+		}
+		return resourceVariants[i].GpuMemory < resourceVariants[j].GpuMemory
+	})
+
+	// Initialize knee_point and best_ratio
+	var kneePoint *Variant
+	bestRatio := 0.0
+
+	// Iterate over each resource variant in the sorted list
+	for _, variant := range resourceVariants {
+		performanceRatio := float64(variant.Capacity) / float64(variant.GpuMemory*variant.GpuCores)
+		if performanceRatio > bestRatio {
+			bestRatio = performanceRatio
+			kneePoint = variant
+		}
+	}
+
+	// Return the knee_point variant
+	return kneePoint
+}
+
+func (lb *LoadBalancer) findResourceVariantGroup(taskId string, requiredCapacity float32, maxColocationFactor int) []*Variant {
+	variants := lb.ResourceManager.VariantStore.getTaskVariants(taskId)
+	selectedGroup := []*Variant{}
+	minimumResources := float32(math.MaxFloat32)
+
+	// Helper function to calculate total resources
+	calculateTotalResources := func(group []*Variant) float32 {
+		totalResources := float32(0)
+		for _, v := range group {
+			totalResources += float32(v.GpuMemory) * float32(v.GpuCores)
+		}
+		return totalResources
+	}
+
+	// Helper function to calculate total throughput
+	calculateTotalThroughput := func(group []*Variant) float32 {
+		totalThroughput := float32(0)
+		for _, v := range group {
+			totalThroughput += float32(v.Capacity)
+		}
+		return totalThroughput
+	}
+
+	// Generate all combinations of resource variants
+	var generateCombinations func([]*Variant, int, int, []*Variant)
+	generateCombinations = func(variants []*Variant, start, depth int, current []*Variant) {
+		if depth == 0 {
+			totalResources := calculateTotalResources(current)
+			totalThroughput := calculateTotalThroughput(current)
+			if totalThroughput >= requiredCapacity && totalResources < minimumResources {
+				minimumResources = totalResources
+				selectedGroup = make([]*Variant, len(current))
+				copy(selectedGroup, current)
+			}
+			return
+		}
+		for i := start; i <= len(variants)-depth; i++ {
+			generateCombinations(variants, i+1, depth-1, append(current, variants[i]))
+		}
+	}
+
+	// Iterate over each colocation factor
+	for cf := 1; cf <= maxColocationFactor; cf++ {
+		generateCombinations(variants, 0, cf, []*Variant{})
+	}
+
+	return selectedGroup
+}
+
+func (lb *LoadBalancer) scaleOperation(taskId string, load float32, capacity float32) {
 	// Variant Selection Logic
-	variantId := "4788d252-3481-4618-a83f-87ed1bfb8875"
+	if capacity == 0 { // First variant
+		variant := lb.findPerformanceKneePointVariant(taskId, load)
+		lb.createNewInstance(variant.Id)
+	} else { // Scaling operation
+		res := float32(load - capacity)
+		variants := lb.findResourceVariantGroup(taskId, res, 4)
+		for _, variant := range variants {
+			lb.createNewInstance(variant.Id)
+		}
+	}
+}
+
+func (lb *LoadBalancer) createNewInstance(variantId string) {
+	// variantId := "4788d252-3481-4618-a83f-87ed1bfb8875"
 	// Node Selection Logic
 	nodeName := "ub-10"
 

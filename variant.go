@@ -84,3 +84,16 @@ func (vs *VariantStore) getRelevantVariants(taskId string, accuracy float32,
 	}
 	return relevantVariants
 }
+
+func (vs *VariantStore) getTaskVariants(taskId string) []*Variant {
+	var relevantVariants []*Variant
+
+	// Find the variants that satisfies the constraints
+	for _, variant := range vs.Variants {
+		if variant.TaskId != taskId {
+			continue
+		}
+		relevantVariants = append(relevantVariants, variant)
+	}
+	return relevantVariants
+}

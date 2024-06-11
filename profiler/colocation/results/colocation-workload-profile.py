@@ -112,7 +112,7 @@ def create_pod_yaml(mem, com, name, port1, port2):
             "containers": [
                 {
                     "name": "ts1",
-                    "image": "synergcseiitb/bart-large-cnn-samsum-text_summarization",
+                    "image": "synergcseiitb/bart-large-cnn-text_summarization",
                     "imagePullPolicy": "Never",
                     "ports": [{"containerPort": port1}],
                     "resources": {
@@ -179,7 +179,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
         # Create YAML content
         start_time = time.time()
         for ind in range(1, num_colocation+1):
-            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 5555, 12344 + ind)
+            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 4444, 12344 + ind)
             subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
             subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
@@ -222,7 +222,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
 if __name__ == "__main__":
     load = [2, 4, 6, 8, 10, 12, 14, 16]
     num_colocation = 2
-    file_name = "samsum-2-fixed-memory.csv"
+    file_name = "cnn-2-fixed-memory.csv"
     pods = [
         [Pod(6, 20), Pod(6, 20)],
         [Pod(6, 40), Pod(6, 40)],
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
     num_colocation = 3
-    file_name = "samsum-3-fixed-memory.csv"
+    file_name = "cnn-3-fixed-memory.csv"
     pods = [
         [Pod(4, 20), Pod(4, 20), Pod(4, 20)],
         [Pod(4, 40), Pod(4, 40), Pod(4, 40)],
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
     num_colocation = 4
-    file_name = "samsum-4-fixed-memory.csv"
+    file_name = "cnn-4-fixed-memory.csv"
     pods = [
         [Pod(3, 20), Pod(3, 20), Pod(3, 20), Pod(3, 20)],
         [Pod(3, 40), Pod(3, 40), Pod(3, 40), Pod(3, 40)],

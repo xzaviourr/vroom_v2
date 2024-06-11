@@ -112,7 +112,7 @@ def create_pod_yaml(mem, com, name, port1, port2):
             "containers": [
                 {
                     "name": "ts1",
-                    "image": "synergcseiitb/bart-large-cnn-samsum-text_summarization",
+                    "image": "synergcseiitb/bart-large-cnn-text_summarization",
                     "imagePullPolicy": "Never",
                     "ports": [{"containerPort": port1}],
                     "resources": {
@@ -179,7 +179,7 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
         # Create YAML content
         start_time = time.time()
         for ind in range(1, num_colocation+1):
-            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 5555, 12344 + ind)
+            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 4444, 12344 + ind)
             subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
             subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
@@ -220,54 +220,57 @@ def run_simulation(pods:List, load:List, num_colocation:int, filename:str):
             subprocess.run(["kubectl", "delete", "service", f"ts{ind}-service"])
 
 if __name__ == "__main__":
-    # load = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    # num_colocation = 1
-    # file_name = "samsum-1-fixed-memory.csv"
-    # pods = [
-    #     [Pod(12, 10)],
-    #     [Pod(12, 20)],
-    #     [Pod(12, 30)],
-    #     [Pod(12, 40)],
-    #     [Pod(12, 50)],
-    #     [Pod(12, 60)],
-    #     [Pod(12, 70)],
-    #     [Pod(12, 80)],
-    #     [Pod(12, 90)],
-    #     [Pod(12, 100)],  
-
-    #     [Pod(6, 10)],
-    #     [Pod(6, 20)],
-    #     [Pod(6, 30)],
-    #     [Pod(6, 40)],
-    #     [Pod(6, 50)],
-    #     [Pod(6, 60)],
-    #     [Pod(6, 70)],
-    #     [Pod(6, 80)],
-    #     [Pod(6, 90)],
-    #     [Pod(6, 100)],
-    # ]
-    # s = ""
-    # for ind in range(1, num_colocation+1):
-    #     s += f"memory{ind},compute{ind},"
-    # s += "startup_time,arrival_rate,throughput,average_latency,latencies,utilization\n"
-    # with open(file_name, 'a') as file:
-    #     file.write(s)
-
-    # run_simulation(pods, load, num_colocation, file_name)
-
-    # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
     num_colocation = 1
-    file_name = "samsum-1-fixed-compute.csv"
+    file_name = "cnn-1-fixed-memory-all.csv"
     pods = [
-        [Pod(2, 100)],
-        [Pod(4, 100)],
-        [Pod(6, 100)],
-        [Pod(8, 100)],
-        [Pod(10, 100)],
+        [Pod(2, 20)],
+        [Pod(2, 40)],
+        [Pod(2, 60)],
+        [Pod(2, 80)],
+        [Pod(2, 100)],  
+
+        [Pod(4, 20)],
+        [Pod(4, 40)],
+        [Pod(4, 60)],
+        [Pod(4, 80)],
+        [Pod(4, 100)],  
+
+        [Pod(6, 20)],
+        [Pod(6, 40)],
+        [Pod(6, 60)],
+        [Pod(6, 80)],
+        [Pod(6, 100)],  
+
+        [Pod(8, 20)],
+        [Pod(8, 40)],
+        [Pod(8, 60)],
+        [Pod(8, 80)],
+        [Pod(8, 100)],  
+
+        [Pod(10, 20)],
+        [Pod(10, 40)],
+        [Pod(10, 60)],
+        [Pod(10, 80)],
+        [Pod(10, 100)],  
+
+        [Pod(12, 20)],
+        [Pod(12, 40)],
+        [Pod(12, 60)],
+        [Pod(12, 80)],
         [Pod(12, 100)],
+
+        [Pod(14, 20)],
+        [Pod(14, 40)],
+        [Pod(14, 60)],
+        [Pod(14, 80)],
         [Pod(14, 100)],
-        [Pod(16, 100)],
+
+        [Pod(16, 20)],
+        [Pod(16, 40)],
+        [Pod(16, 60)],
+        [Pod(16, 80)],
+        [Pod(16, 100)],  
     ]
     s = ""
     for ind in range(1, num_colocation+1):
@@ -277,3 +280,26 @@ if __name__ == "__main__":
         file.write(s)
 
     run_simulation(pods, load, num_colocation, file_name)
+
+    # ================================================================================================================
+    # load = [2, 4, 6, 8, 10, 12, 14, 16]
+    # num_colocation = 1
+    # file_name = "cnn-1-fixed-compute.csv"
+    # pods = [
+    #     [Pod(2, 100)],
+    #     [Pod(4, 100)],
+    #     [Pod(6, 100)],
+    #     [Pod(8, 100)],
+    #     [Pod(10, 100)],
+    #     [Pod(12, 100)],
+    #     [Pod(14, 100)],
+    #     [Pod(16, 100)],
+    # ]
+    # s = ""
+    # for ind in range(1, num_colocation+1):
+    #     s += f"memory{ind},compute{ind},"
+    # s += "startup_time,arrival_rate,throughput,average_latency,latencies,utilization\n"
+    # with open(file_name, 'a') as file:
+    #     file.write(s)
+
+    # run_simulation(pods, load, num_colocation, file_name)

@@ -112,7 +112,7 @@ def create_pod_yaml(mem, com, name, port1, port2):
             "containers": [
                 {
                     "name": "ts1",
-                    "image": "synergcseiitb/bart-large-cnn-samsum-text_summarization",
+                    "image": "synergcseiitb/bart-large-cnn-text_summarization",
                     "imagePullPolicy": "Never",
                     "ports": [{"containerPort": port1}],
                     "resources": {
@@ -180,7 +180,7 @@ def run_simulation(pods:List, load:List, filename:str):
         num_colocation = len(pod)
         start_time = time.time()
         for ind in range(1, num_colocation+1):
-            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 5555, 12344 + ind)
+            create_pod_yaml(pod[ind-1].memory, pod[ind-1].compute, f"ts{ind}", 4444, 12344 + ind)
             subprocess.run(["kubectl", "apply", "-f", "pod_request.yaml"])
             subprocess.run(["kubectl", "apply", "-f", "pod_service.yaml"])
 
@@ -225,7 +225,7 @@ def run_simulation(pods:List, load:List, filename:str):
 
 if __name__ == "__main__":
     load = [2, 4, 6, 8, 10, 12, 14, 16]
-    file_name = "samsum-colocated-no-overprovisioning.csv"
+    file_name = "cnn-colocated-no-overprovisioning.csv"
     pods = [
         [Pod(12, 100)],
         [Pod(6, 50), Pod(6, 50)],
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
-    file_name = "samsum-colocated-with-overprovisioning-200.csv"
+    file_name = "cnn-colocated-with-overprovisioning-200.csv"
     pods = [
         [Pod(8, 100), Pod(8, 100)],
         [Pod(5, 66), Pod(5, 66), Pod(5, 66)],
@@ -257,7 +257,7 @@ if __name__ == "__main__":
 
     # ================================================================================================================
     load = [2, 4, 6, 8, 10, 12, 14, 16]
-    file_name = "samsum-colocated-with-overprovisioning-300.csv"
+    file_name = "cnn-colocated-with-overprovisioning-300.csv"
     pods = [
         [Pod(5, 100), Pod(5, 100), Pod(5, 100)],
         [Pod(4, 75), Pod(4, 75), Pod(4, 75), Pod(4, 75)],
