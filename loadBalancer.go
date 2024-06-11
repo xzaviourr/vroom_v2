@@ -149,6 +149,11 @@ func (lb *LoadBalancer) scaleOperation(taskId string, load float32, capacity flo
 	} else { // Scaling operation
 		res := float32(load - capacity)
 		variants := lb.findResourceVariantGroup(taskId, res, 4)
+
+		fmt.Println("Current capacity: ", capacity)
+		fmt.Println("Current load: ", load)
+		fmt.Println("Selected group of variants: ", variants)
+
 		for _, variant := range variants {
 			lb.createNewInstance(variant.Id)
 		}

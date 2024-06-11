@@ -13,14 +13,18 @@ timestamps = pd.date_range(data['registrationts'].min(), data['responsets'].max(
 
 instances = data["instance"].unique()
 
-# Count the occurrences of each timestamp
-counts = pd.Series(index=timestamps, data=0)
-for index, row in data.iterrows():
-    counts.loc[row['responsets']] += 1
+index = 1
+mapping = {1:"blue", 2:"green",3:"yellow",4:"red",5:"black"}
+plt.figure(figsize=(10,10))
+for instance in instances:
+    # Count the occurrences of each timestamp
+    counts = pd.Series(index=timestamps, data=0)
+    for idx, row in data[data["instance"] == instance].iterrows():
+        counts.loc[row['responsets']] += 1
 
-# Plot the histogram
-plt.figure(figsize=(10, 6))
-plt.bar(range(len(counts.index)), counts.values, width=1, color='skyblue', edgecolor='black', label="Variant 20%,2GB")
+    # Plot the line chart
+    plt.plot(range(len(counts.index)), counts.values, color=mapping[index], label=f"Instance {index}")
+    index += 1
 
 # plt.xticks(range(len(counts.index)))
 plt.xlabel('Timeline')
