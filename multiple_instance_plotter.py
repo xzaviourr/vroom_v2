@@ -14,7 +14,9 @@ timestamps = pd.date_range(data['registrationts'].min(), data['responsets'].max(
 instances = data["instance"].unique()
 
 index = 1
-mapping = {1:"blue", 2:"green",3:"yellow",4:"red",5:"black"}
+mapping = {1:"blue", 2:"green",3:"yellow",4:"red",5:"orange"}
+labels = {1:"2 GB, 20%", 2:"2 GB, 20%", 3:"2 GB, 40%", 4: "4 GB, 20%"}
+print(instances)
 plt.figure(figsize=(10,10))
 for instance in instances:
     # Count the occurrences of each timestamp
@@ -23,13 +25,15 @@ for instance in instances:
         counts.loc[row['responsets']] += 1
 
     # Plot the line chart
-    plt.plot(range(len(counts.index)), counts.values, color=mapping[index], label=f"Instance {index}")
+    plt.plot(range(len(counts.index)), counts.values, color=mapping[index], label=f"{labels[index]}")
     index += 1
+    if index == 5:
+        break
 
 # plt.xticks(range(len(counts.index)))
 plt.xlabel('Timeline')
 plt.ylabel('Frequency')
-plt.title('Throughput timeline for the workload with costant 0.2 reqs/sec arrival rate')
+plt.title('Throughput timeline for the workload with constant 3 reqs/sec arrival rate.')
 plt.grid(True)
 plt.legend()
 plt.savefig("simulation.png")

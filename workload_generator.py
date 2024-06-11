@@ -31,7 +31,7 @@ def measure_overall_throughput(arrival_rate):
         send_post_request(session)
         time.sleep(60)
     
-    for second in range(120):
+    for second in range(180):
         for _ in range(3):
             send_post_request(session)
         time.sleep(1)
