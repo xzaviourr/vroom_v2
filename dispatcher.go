@@ -53,5 +53,5 @@ func dispatch(funcReq *FuncReq, serviceUrl string, variantId string, variantAccu
 		}
 	}
 
-	logger.newLog(funcReq, variantId, variantAccuracy, errorMessage)
+	logger.newLog(funcReq, variantId, variantAccuracy, errorMessage, serviceUrl)
 }

@@ -38,10 +38,10 @@ func (lb *LoadBalancer) monitorLoad() {
 				capacity = 0
 			}
 
-			fmt.Println("Load Balancer : ", taskId, activeLoad, capacity)
+			fmt.Println("Load Balancer : ", taskId, float32(activeLoad)/5, float32(capacity))
 
-			if float32(activeLoad) > capacity*0.8 { // If incoming load crossed 90% limit
-				lb.scaleOperation(taskId, float32(activeLoad/5), capacity)
+			if (float32(activeLoad) / 5) > (float32(capacity) * 0.8) { // If incoming load crossed 90% limit
+				lb.scaleOperation(taskId, float32(activeLoad)/5, capacity)
 			}
 		}
 	}
@@ -81,7 +81,7 @@ func (lb *LoadBalancer) findPerformanceKneePointVariant(taskId string, currentAr
 
 	// Iterate over each resource variant in the sorted list
 	for _, variant := range resourceVariants {
-		performanceRatio := float64(variant.Capacity) / float64(variant.GpuMemory*variant.GpuCores)
+		performanceRatio := float64(variant.Capacity) / float64((float32(variant.GpuMemory)/float32(16))+(float32(variant.GpuCores)/float32(100)))
 		if performanceRatio > bestRatio {
 			bestRatio = performanceRatio
 			kneePoint = variant
