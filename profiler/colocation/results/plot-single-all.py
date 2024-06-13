@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 16})  # You can change 14 to any desired font size
 
 single = pd.read_csv("cnn-1-fixed-memory-all.csv")
 single['memory'] = single['memory1']

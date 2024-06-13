@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import ast
+plt.rcParams.update({'font.size': 16})  # You can change 14 to any desired font size
 
 filename = "samsum-1-fixed-memory.csv"
 num_colocation = 1
@@ -50,12 +51,14 @@ dataset = []
 for com in compute_values:
     latencies = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 12)]["latencies"].iloc[0]
     latencies = ast.literal_eval(latencies)  
+    for i in range(len(latencies)):
+        latencies[i] = latencies[i]/15000
     dataset.append(latencies)
 
 plt.boxplot(dataset)
 plt.xticks(range(1, 11), compute_values)  
 plt.xlabel(f'Total GPU cores percentage')
-plt.ylabel('Response Time (ms)')
+plt.ylabel('Response Time (seconds)')
 plt.title(f'Distribution of Response Times (Arrival Rate = 12 Req/s)')
 plt.grid(True)
 
@@ -86,12 +89,12 @@ plt.scatter([mini], [minv], color='r', s=100, zorder=5)
 # Add a label to the highlighted point
 plt.annotate(f'Minimum GPU Activity\nGPU cores: {mini}%\nActivity duration: {minv} seconds', 
              xy=(mini, minv), 
-             xytext=(mini - 20, minv + 5),
+             xytext=(mini - 30, minv + 5),
              arrowprops=dict(facecolor='black', shrink=0.05))
 
 plt.xlabel('Percentage of GPU cores allocated')
 plt.ylabel('Time of GPU activity (s)')
-plt.title(f'GPU activity vs GPU cores')
+plt.title(f'GPU activity duration vs GPU cores')
 plt.grid(True)
 
 plt.suptitle(f"Throughput, Utilization and Latency distribution for text summarization workload running with {memory/num_colocation}GB memory")
