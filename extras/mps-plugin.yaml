@@ -1,0 +1,37 @@
+# MPS-GPU-PLUGIN CONFIGURATION
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-pod
+spec:
+  hostIPC: true
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 1000 # NEED FOR MPS SERVER
+  containers:
+  - name: cnn-container
+    image: synergcseiitb/bart-large-cnn-text_summarization
+    imagePullPolicy: Never
+    ports:
+    - containerPort: 4444
+    resources:
+      limits:
+        nvidia.com/vcore: 40 # FOR GPU CORES
+        nvidia.com/vmem: 7   # FOR GPU MEMORY 
+
+
+resources:
+  limits:
+    nvidia.com/vcore: 30 # FOR GPU CORES
+    nvidia.com/vmem: 6   # FOR GPU MEMORY 
+
+resources:
+  limits:
+    nvidia.com/vcore: 70 # FOR GPU CORES
+    nvidia.com/vmem: 10   # FOR GPU MEMORY 
+
+resources:
+  limits:
+    nvidia.com/vcore: 20 # FOR GPU CORES
+    nvidia.com/vmem: 9   # FOR GPU MEMORY 
+

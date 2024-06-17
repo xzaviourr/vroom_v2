@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import ast
+plt.rcParams.update({'font.size': 16})  # You can change 14 to any desired font size
 
 filename = "samsum-colocated-no-overprovisioning.csv"
 memory = 12
@@ -33,12 +34,14 @@ dataset = []
 for co in colocation_values:
     latencies = data[(data['colocation'] == co) & (data['arrival_rate'] == 4)]["latencies"].iloc[0]
     latencies = ast.literal_eval(latencies)  
+    for i in range(len(latencies)):
+        latencies[i] = latencies[i]/15000
     dataset.append(latencies)
 
 plt.boxplot(dataset)
 plt.xticks(range(1, 5), colocation_values)  
 plt.xlabel(f'Colocation Level')
-plt.ylabel('Response Time (ms)')
+plt.ylabel('Response Time (seconds)')
 plt.title(f'Distribution of Response Times (Arrival Rate = 16 Req/s)')
 plt.grid(True)
 
@@ -57,14 +60,9 @@ for co in colocation_values:
     df = df[df["GPU_Utilization"] > 5]
     activitiy = df['GPU_Utilization'].max() - df['GPU_Utilization'].min()
     values.append(activitiy)
-    if co == 4:
-        minv = activitiy
 
-values = [76, 74, 71, 69]
 plt.plot(range(1, 5, 1), values, marker='o')
 plt.xticks(range(1, 5, 1))
-mini = 4
-minv = 69
 
 # Plot the highlighted point with a different color and larger size
 plt.scatter([mini], [minv], color='r', s=100, zorder=5)
@@ -72,12 +70,12 @@ plt.scatter([mini], [minv], color='r', s=100, zorder=5)
 # Add a label to the highlighted point
 plt.annotate(f'Minimum GPU Activity\nColocation Level: {mini}\nActivity duration: {minv} seconds', 
              xy=(mini, minv), 
-             xytext=(mini - 2, minv + 1),
+             xytext=(mini - 3, minv + 1),
              arrowprops=dict(facecolor='black', shrink=0.05))
 
 plt.xlabel('Colocation level')
 plt.ylabel('Time of GPU activity (s)')
-plt.title(f'GPU activity vs Colocation level')
+plt.title(f'GPU activity duration vs Colocation level')
 plt.grid(True)
 
 plt.suptitle(f"Throughput, Utilization and Latency distribution for text summarization workload running with 12 GB of memory, 100% GPU cores, and varying colocation level")

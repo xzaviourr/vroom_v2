@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import ast
+plt.rcParams.update({'font.size': 16})  # You can change 14 to any desired font size
 
 filename = "samsum-colocated-with-overprovisioning-300.csv"
 memory = 12
@@ -32,13 +33,15 @@ plt.subplot(1, 3, 2)
 dataset = []
 for co in colocation_values:
     latencies = data[(data['colocation'] == co) & (data['arrival_rate'] == 4)]["latencies"].iloc[0]
-    latencies = ast.literal_eval(latencies)  
+    latencies = ast.literal_eval(latencies)
+    for i in range(len(latencies)):
+        latencies[i] = latencies[i]/15000
     dataset.append(latencies)
 
 plt.boxplot(dataset)
 plt.xticks(range(1, 4), colocation_values)  
 plt.xlabel(f'Colocation Level')
-plt.ylabel('Response Time (ms)')
+plt.ylabel('Response Time (seconds)')
 plt.title(f'Distribution of Response Times (Arrival Rate = 16 Req/s)')
 plt.grid(True)
 
@@ -60,11 +63,8 @@ for co in colocation_values:
     if co == 4:
         minv = activitiy
 
-values = [77, 79, 76]
 plt.plot(range(3, 6, 1), values, marker='o')
 plt.xticks(range(3, 6, 1))
-mini = 5
-minv = 76
 
 # Plot the highlighted point with a different color and larger size
 plt.scatter([mini], [minv], color='r', s=100, zorder=5)
@@ -77,7 +77,7 @@ plt.annotate(f'Minimum GPU Activity\nColocation Level: {mini}\nActivity duration
 
 plt.xlabel('Colocation level')
 plt.ylabel('Time of GPU activity (s)')
-plt.title(f'GPU activity vs Colocation Level')
+plt.title(f'GPU activity duration vs Colocation Level')
 plt.grid(True)
 
 plt.suptitle(f"Throughput, Utilization and Latency distribution for text summarization workload running with 16 GB of memory, 300% GPU cores, and varying colocation level")

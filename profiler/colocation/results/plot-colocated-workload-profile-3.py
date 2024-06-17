@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import ast
+plt.rcParams.update({'font.size': 16})  # You can change 14 to any desired font size
 
 filename = "samsum-3-fixed-memory.csv"
 num_colocation = 3
@@ -49,13 +50,15 @@ plt.subplot(1, 3, 2)
 dataset = []
 for com in compute_values:
     latencies = data[(data['compute'] == com) & (data['memory'] == memory) & (data['arrival_rate'] == 16)]["latencies"].iloc[0]
-    latencies = ast.literal_eval(latencies)  
+    latencies = ast.literal_eval(latencies)
+    for i in range(len(latencies)):
+        latencies[i] = latencies[i]/15000
     dataset.append(latencies)
 
 plt.boxplot(dataset)
 plt.xticks(range(1, 6), compute_values)  
 plt.xlabel(f'Total GPU cores percentage')
-plt.ylabel('Response Time (ms)')
+plt.ylabel('Response Time (seconds)')
 plt.title(f'Distribution of Response Times (Arrival Rate = 16 Req/s)')
 plt.grid(True)
 
@@ -77,10 +80,7 @@ for com in compute_values:
     if com == 100:
         minv = activitiy
 
-values = [69, 64, 68, 66, 62]
 plt.plot(range(60, 301, 60), values, marker='o')
-mini = 300
-minv = 62
 
 # Plot the highlighted point with a different color and larger size
 plt.scatter([mini], [minv], color='r', s=100, zorder=5)
@@ -88,12 +88,12 @@ plt.scatter([mini], [minv], color='r', s=100, zorder=5)
 # Add a label to the highlighted point
 plt.annotate(f'Minimum GPU Activity\nGPU cores: {mini}%\nActivity duration: {minv} seconds', 
              xy=(mini, minv), 
-             xytext=(mini - 120, minv + 1),
+             xytext=(mini - 200, minv + 1),
              arrowprops=dict(facecolor='black', shrink=0.05))
 
 plt.xlabel('Percentage of GPU cores allocated')
 plt.ylabel('Time of GPU activity (s)')
-plt.title(f'GPU activity vs GPU cores')
+plt.title(f'GPU activity duration vs GPU cores')
 plt.grid(True)
 
 plt.suptitle(f"Throughput, Utilization and Latency distribution for text summarization workload running with {memory/num_colocation}GB memory each")
