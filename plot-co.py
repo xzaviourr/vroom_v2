@@ -15,12 +15,12 @@ instances = data["instance"].unique()
 
 index = 1
 mapping = {1:"blue", 2:"green",3:"yellow",4:"red",5:"orange"}
-labels = {1:"16 GB, 100%", 2:"16 GB, 100%", 3:"2 GB, 40%", 4: "4 GB, 20%"}
+labels = {1:"2 GB, 20%", 2:"2 GB, 20%", 3:"2 GB, 40%", 4: "4 GB, 20%", 5: "2GB, 40%"}
 
 plt.figure(figsize=(10,10))
 final = []
 for instance in instances:
-    plt.subplot(3, 1, index)
+    plt.subplot(5, 1, index)
     # Count the occurrences of each timestamp
     counts = pd.Series(index=timestamps, data=0)
     for idx, row in data[data["instance"] == instance].iterrows():
@@ -49,13 +49,13 @@ for i in range(max_length):
         except:
             pass
 
-plt.subplot(3, 1, 3)
+plt.subplot(5, 1, 5)
 plt.plot(range(max_length), total_throughput, color='black', label=f"Total Throughput")
 
 # plt.xticks(range(len(counts.index)))
 plt.xlabel('Timeline')
 plt.ylabel('Throughput')
-plt.suptitle('Throughput timeline for the workload with constant 3 reqs/sec arrival rate.')
+plt.suptitle('Throughput timeline for the workload with constant 10 reqs/sec arrival rate.')
 plt.grid(True)
 plt.legend()
 plt.savefig("simulation.png")

@@ -146,9 +146,13 @@ func (lb *LoadBalancer) scaleOperation(taskId string, load float32, capacity flo
 	if capacity == 0 { // First variant
 		// variant := lb.findPerformanceKneePointVariant(taskId, load)
 		// lb.createNewInstance(variant.Id)
-		variant := "79790562-3458-42dd-a7e7-ad59bd9eff95"
-		lb.createNewInstance(variant)
-		lb.createNewInstance(variant)
+		// variant := "79790562-3458-42dd-a7e7-ad59bd9eff95"
+		// lb.createNewInstance(variant)
+		lb.createNewInstance("0c037d3b-aa90-461e-af27-771066aa3fb6")
+		lb.createNewInstance("0c037d3b-aa90-461e-af27-771066aa3fb6")
+		lb.createNewInstance("7911ea8b-2b8b-40a0-8c7a-2ab7b2c7ba1d")
+		lb.createNewInstance("458e4b8e-72d9-46ee-b06c-021c5fe1f279")
+		// lb.createNewInstance(variant)
 	} else { // Scaling operation
 		// res := float32(load - capacity)
 		// variants := lb.findResourceVariantGroup(taskId, res, 4)
