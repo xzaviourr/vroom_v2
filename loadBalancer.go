@@ -144,19 +144,22 @@ func (lb *LoadBalancer) findResourceVariantGroup(taskId string, requiredCapacity
 func (lb *LoadBalancer) scaleOperation(taskId string, load float32, capacity float32) {
 	// Variant Selection Logic
 	if capacity == 0 { // First variant
-		variant := lb.findPerformanceKneePointVariant(taskId, load)
-		lb.createNewInstance(variant.Id)
+		// variant := lb.findPerformanceKneePointVariant(taskId, load)
+		// lb.createNewInstance(variant.Id)
+		variant := "79790562-3458-42dd-a7e7-ad59bd9eff95"
+		lb.createNewInstance(variant)
+		lb.createNewInstance(variant)
 	} else { // Scaling operation
-		res := float32(load - capacity)
-		variants := lb.findResourceVariantGroup(taskId, res, 4)
+		// res := float32(load - capacity)
+		// variants := lb.findResourceVariantGroup(taskId, res, 4)
 
-		fmt.Println("Current capacity: ", capacity)
-		fmt.Println("Current load: ", load)
-		fmt.Println("Selected group of variants: ", variants)
+		// fmt.Println("Current capacity: ", capacity)
+		// fmt.Println("Current load: ", load)
+		// fmt.Println("Selected group of variants: ", variants)
 
-		for _, variant := range variants {
-			lb.createNewInstance(variant.Id)
-		}
+		// for _, variant := range variants {
+		// 	lb.createNewInstance(variant.Id)
+		// }
 	}
 }
 

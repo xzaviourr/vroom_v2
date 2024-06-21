@@ -35,6 +35,7 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 20})
 
 # Read the CSV file into a DataFrame
 df = pd.read_csv("results.csv")
@@ -55,13 +56,13 @@ for load in [1, 2, 4, 8, 16, 32, 64, 128]:
         plt.subplot(1, 1, index)
         index += 1
         sns.heatmap(df_pivot[variable], annot=True, cmap="YlGnBu", fmt=".2f")
-        plt.title(f'Heatmap of {variable.capitalize()}')
-        plt.xlabel('Compute')
-        plt.ylabel('Memory')
+        plt.title(f'Heatmap of Throughput Vs GPU Resources')
+        plt.xlabel('Percentage of GPU cores')
+        plt.ylabel('GPU Memory (in GB)')
         plt.xticks(rotation=45)
         plt.yticks(rotation=0)
         plt.gca().invert_yaxis()
 
-    plt.suptitle(f'Bart-large-cnn-samsum-text_summarization - Load : {load}', fontsize=16)  # Master title
+    plt.suptitle(f'Bart Large CNN Samsum Text Summarization Function With Fixed Arrival Rate : {load} reqs/sec', fontsize=24)  # Master title
     plt.tight_layout()
     plt.savefig(f"{load}.png")

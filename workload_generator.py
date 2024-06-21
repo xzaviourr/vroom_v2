@@ -27,11 +27,11 @@ def send_post_request(session):
 def measure_overall_throughput(arrival_rate):
     session = aiohttp.ClientSession()
     
-    for second in range(1):
+    for _ in range(1):
         send_post_request(session)
         time.sleep(60)
     
-    for second in range(180):
+    for _ in range(180):
         for _ in range(3):
             send_post_request(session)
         time.sleep(1)
